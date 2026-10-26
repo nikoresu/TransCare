@@ -17,6 +17,8 @@ import org.json.JSONArray
 import org.json.JSONObject
 import org.json.JSONTokener
 import org.nikoresu.transcare.domain.model.Appointment
+import org.nikoresu.transcare.domain.model.DiaryEntry
+import org.nikoresu.transcare.domain.model.DiaryEntryType
 import org.nikoresu.transcare.domain.model.ExamMetric
 import org.nikoresu.transcare.domain.model.ExamResult
 
@@ -24,6 +26,7 @@ import org.nikoresu.transcare.domain.model.ExamResult
 data class BackupContents(
     val appointments: List<Appointment>,
     val examResults: List<ExamResult>,
+    val diaryEntries: List<DiaryEntry>,
     val skippedEntries: Int,
 )
 
@@ -48,6 +51,7 @@ object BackupManager {
     fun buildBackupJson(
         appointments: List<Appointment>,
         results: List<ExamResult>,
+        diaryEntries: List<DiaryEntry>,
         exportedAt: Instant = Instant.now(),
     ): String {
         val appointmentArray = JSONArray()
@@ -56,12 +60,16 @@ object BackupManager {
         val resultArray = JSONArray()
         results.forEach { resultArray.put(it.toJsonObject()) }
 
+        val diaryArray = JSONArray()
+        diaryEntries.forEach { diaryArray.put(it.toJsonObject()) }
+
         return JSONObject()
             .put("app", "TransCare")
-            .put("schemaVersion", 1)
+            .put("schemaVersion", 3)
             .put("exportedAt", exportedAt.toString())
             .put("appointments", appointmentArray)
             .put("examResults", resultArray)
+            .put("diaryEntries", diaryArray)
             .toString(2)
     }
 
@@ -84,15 +92,19 @@ object BackupManager {
                 val appointmentArray = root.optJSONArray("appointments")
                 val resultArray = root.optJSONArray("examResults")
                     ?: root.optJSONArray("exam_results")
-                if (appointmentArray == null && resultArray == null) {
+                val diaryArray = root.optJSONArray("diaryEntries")
+                    ?: root.optJSONArray("diary_entries")
+                if (appointmentArray == null && resultArray == null && diaryArray == null) {
                     throw IllegalArgumentException("Not a TransCare backup")
                 }
                 val (appointments, skippedAppointments) = parseAppointments(appointmentArray)
                 val (results, skippedResults) = parseExamResults(resultArray)
+                val (diaryEntries, skippedDiaryEntries) = parseDiaryEntries(diaryArray)
                 BackupContents(
                     appointments = appointments,
                     examResults = results,
-                    skippedEntries = skippedAppointments + skippedResults,
+                    diaryEntries = diaryEntries,
+                    skippedEntries = skippedAppointments + skippedResults + skippedDiaryEntries,
                 )
             }
 
@@ -109,6 +121,7 @@ object BackupManager {
             BackupContents(
                 appointments = emptyList(),
                 examResults = results,
+                diaryEntries = emptyList(),
                 skippedEntries = skipped,
             )
         } else {
@@ -116,6 +129,7 @@ object BackupManager {
             BackupContents(
                 appointments = appointments,
                 examResults = emptyList(),
+                diaryEntries = emptyList(),
                 skippedEntries = skipped,
             )
         }
@@ -182,6 +196,33 @@ object BackupManager {
         return results to skipped
     }
 
+    private fun parseDiaryEntries(array: JSONArray?): Pair<List<DiaryEntry>, Int> {
+        if (array == null) return emptyList<DiaryEntry>() to 0
+        val entries = mutableListOf<DiaryEntry>()
+        var skipped = 0
+        for (index in 0 until array.length()) {
+            val json = array.optJSONObject(index)
+            if (json == null) {
+                skipped++
+                continue
+            }
+            val dayStartMillis = json.optLong("dayStartMillis", -1L)
+            val title = json.optString("title").trim()
+            val text = json.optString("text").trim()
+            if (!isValidDay(dayStartMillis) || (title.isEmpty() && text.isEmpty())) {
+                skipped++
+                continue
+            }
+            entries += DiaryEntry(
+                dayStartMillis = dayStartMillis,
+                title = title,
+                text = text,
+                type = DiaryEntryType.fromStorageValue(json.optString("type")),
+            )
+        }
+        return entries to skipped
+    }
+
     private fun isValidDay(epochMillis: Long): Boolean =
         epochMillis in 1L..MAX_DAY_START_MILLIS
 
@@ -210,8 +251,9 @@ object BackupManager {
         context: Context,
         appointments: List<Appointment>,
         results: List<ExamResult>,
+        entries: List<DiaryEntry>,
     ): BackupFile = withContext(Dispatchers.IO + NonCancellable) {
-        val json = buildBackupJson(appointments, results)
+        val json = buildBackupJson(appointments, results, entries)
         val resolver = context.contentResolver
         val requestedName = fileName()
 

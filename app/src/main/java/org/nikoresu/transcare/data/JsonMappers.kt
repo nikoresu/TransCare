@@ -2,6 +2,7 @@ package org.nikoresu.transcare.data
 
 import org.json.JSONObject
 import org.nikoresu.transcare.domain.model.Appointment
+import org.nikoresu.transcare.domain.model.DiaryEntry
 import org.nikoresu.transcare.domain.model.ExamResult
 
 /** Serializes an appointment using the same keys as the internal storage file. */
@@ -20,3 +21,11 @@ internal fun ExamResult.toJsonObject(): JSONObject = JSONObject()
     .put("value", value)
     .put("dayStartMillis", dayStartMillis)
     .put("note", note)
+
+/** Serializes a diary entry using the same keys as the internal storage file. */
+internal fun DiaryEntry.toJsonObject(): JSONObject = JSONObject()
+    .put("id", id)
+    .put("dayStartMillis", dayStartMillis)
+    .put("title", title)
+    .put("text", text)
+    .put("type", type.name)

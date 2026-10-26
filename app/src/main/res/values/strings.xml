@@ -5,6 +5,7 @@
     <!-- Navigation -->
     <string name="tab_schedule">Schedule</string>
     <string name="tab_exams">Exams</string>
+    <string name="tab_diary">Diary</string>
     <string name="tab_profile">Profile</string>
 
     <!-- Common actions and states -->
@@ -49,25 +50,26 @@
 
     <!-- Backup -->
     <string name="backup_title">Backup</string>
-    <string name="backup_description">Save all appointments and exam results to a single JSON file in the Downloads folder of this device, or restore a previous backup.</string>
+    <string name="backup_description">Save all appointments, exam results and diary entries to a single JSON file in the Downloads folder of this device, or restore a previous backup.</string>
     <string name="backup_appointments">Appointments</string>
     <string name="backup_exam_results">Exam results</string>
+    <string name="backup_diary_entries">Diary entries</string>
     <string name="backup_file_name">File name</string>
     <string name="backup_saved">Backup saved: Downloads/%1$s</string>
     <string name="backup_save_failed">Could not save the backup. Please try again.</string>
     <string name="backup_save_action">Save backup to Downloads</string>
     <string name="backup_restore_title">Restore from a backup</string>
-    <string name="backup_restore_description">Choose a TransCare backup file. Importing replaces the appointments and exam results currently in the app.</string>
+    <string name="backup_restore_description">Choose a TransCare backup file. Importing replaces the appointments, exam results and diary entries currently in the app.</string>
     <string name="backup_import_action">Import backup from file</string>
     <string name="backup_security_note">The backup is plain JSON and is not encrypted. It contains health information, so store and share it carefully.</string>
-    <string name="backup_empty_file">No appointments or exam results were found in this file.</string>
+    <string name="backup_empty_file">No appointments, exam results or diary entries were found in this file.</string>
     <string name="backup_read_failed">Could not read this file as a TransCare backup.</string>
     <string name="backup_import_failed">Could not import the backup. Your current data was not changed.</string>
     <string name="backup_replace_title">Replace current data?</string>
-    <string name="backup_contains">This backup contains %1$s and %2$s.</string>
-    <string name="backup_will_replace">Importing will replace the current data: %1$s and %2$s.</string>
-    <string name="backup_imported">Imported %1$s and %2$s.</string>
-    <string name="backup_imported_with_skipped">Imported %1$s and %2$s. %3$s</string>
+    <string name="backup_contains">This backup contains %1$s, %2$s and %3$s.</string>
+    <string name="backup_will_replace">Importing will replace the current data: %1$s, %2$s and %3$s.</string>
+    <string name="backup_imported">Imported %1$s, %2$s and %3$s.</string>
+    <string name="backup_imported_with_skipped">Imported %1$s, %2$s and %3$s. %4$s</string>
 
     <plurals name="appointment_count">
         <item quantity="one">%d appointment</item>
@@ -77,6 +79,10 @@
         <item quantity="one">%d exam result</item>
         <item quantity="other">%d exam results</item>
     </plurals>
+    <plurals name="diary_entry_count">
+        <item quantity="one">%d diary entry</item>
+        <item quantity="other">%d diary entries</item>
+    </plurals>
     <plurals name="invalid_entry_will_be_skipped">
         <item quantity="one">%d invalid entry will be skipped.</item>
         <item quantity="other">%d invalid entries will be skipped.</item>
@@ -85,6 +91,35 @@
         <item quantity="one">%d invalid entry was skipped.</item>
         <item quantity="other">%d invalid entries were skipped.</item>
     </plurals>
+
+    <!-- Diary -->
+    <string name="diary_title">Diary</string>
+    <string name="diary_new_title">New entry</string>
+    <string name="diary_edit_title">Edit entry</string>
+    <string name="diary_add">+ New entry</string>
+    <string name="diary_date">Date</string>
+    <string name="diary_type">Type</string>
+    <string name="diary_type_notes">Notes</string>
+    <string name="diary_type_thoughts">Thoughts &amp; Feelings</string>
+    <string name="diary_filter_all">All</string>
+    <string name="diary_filter_empty_title">No entries with this filter</string>
+    <string name="diary_filter_empty_description">Try another filter or show all entries.</string>
+    <string name="diary_show_all">Show all</string>
+    <string name="diary_entry_title">Title (optional)</string>
+    <string name="diary_entry_text">Text</string>
+    <string name="diary_entry_placeholder">Write about your day, symptoms or questions for your doctor…</string>
+    <string name="diary_storage_note">Entries stay on this device and are included in backups.</string>
+    <string name="diary_discard_title">Discard changes?</string>
+    <string name="diary_discard_message">Your changes to this entry will be lost.</string>
+    <string name="diary_discard">Discard</string>
+    <string name="diary_keep_editing">Keep editing</string>
+    <string name="diary_delete_title">Delete entry?</string>
+    <string name="diary_delete_message">This entry will be deleted from this device.</string>
+    <string name="diary_untitled">Untitled</string>
+    <string name="diary_empty_title">No diary entries yet</string>
+    <string name="diary_empty_description">Write down symptoms, questions or notes about your appointments.</string>
+    <string name="diary_empty_action">Use the button below to write your first entry.</string>
+    <string name="diary_empty_button">Write an entry</string>
 
     <!-- Appointments -->
     <string name="appointments_today">Today</string>

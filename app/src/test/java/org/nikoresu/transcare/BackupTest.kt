@@ -1,11 +1,23 @@
 package org.nikoresu.transcare
 
+import java.time.Instant
 import java.time.LocalDate
+import org.json.JSONArray
+import org.json.JSONObject
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.nikoresu.transcare.data.BackupManager
+import org.nikoresu.transcare.domain.model.Appointment
+import org.nikoresu.transcare.domain.model.DiaryEntry
+import org.nikoresu.transcare.domain.model.DiaryEntryType
+import org.nikoresu.transcare.domain.model.ExamMetric
+import org.nikoresu.transcare.domain.model.ExamResult
 
 class BackupTest {
+
+    private val day = LocalDate.of(2026, 10, 23)
+    private val dayStartMillis = DiaryEntry.dayStartMillisOf(day)
 
     @Test
     fun fileNameUsesIsoDate() {
@@ -14,4 +26,135 @@ class BackupTest {
             BackupManager.fileName(LocalDate.of(2026, 10, 23)),
         )
     }
+
+    @Test
+    fun buildBackupJson_includesDiaryEntries() {
+        val json = BackupManager.buildBackupJson(
+            appointments = emptyList(),
+            results = emptyList(),
+            diaryEntries = listOf(
+                DiaryEntry(dayStartMillis = dayStartMillis, title = "Morning", text = "Slept well."),
+                DiaryEntry(
+                    dayStartMillis = dayStartMillis,
+                    text = "Only text.",
+                    type = DiaryEntryType.THOUGHTS,
+                ),
+            ),
+            exportedAt = Instant.parse("2026-10-23T12:00:00Z"),
+        )
+
+        val root = JSONObject(json)
+        assertEquals(3, root.getInt("schemaVersion"))
+        val entries = root.getJSONArray("diaryEntries")
+        assertEquals(2, entries.length())
+        assertEquals("NOTES", entries.getJSONObject(0).getString("type"))
+        assertEquals("THOUGHTS", entries.getJSONObject(1).getString("type"))
+    }
+
+    @Test
+    fun parseBackupJson_restoresDiaryEntries() {
+        val entry = DiaryEntry(
+            dayStartMillis = dayStartMillis,
+            title = "Morning",
+            text = "Slept well.",
+            type = DiaryEntryType.THOUGHTS,
+        )
+        val appointment = Appointment(
+            doctorName = "Dr. Rivera",
+            place = "Clinic",
+            dayStartMillis = dayStartMillis,
+            hour = 9,
+            minute = 30,
+        )
+        val result = ExamResult(
+            metric = ExamMetric.ESTRADIOL,
+            value = 150.0,
+            dayStartMillis = dayStartMillis,
+            note = "Fasting",
+        )
+
+        val json = BackupManager.buildBackupJson(
+            appointments = listOf(appointment),
+            results = listOf(result),
+            diaryEntries = listOf(entry),
+        )
+
+        val contents = BackupManager.parseBackupJson(json)
+
+        assertEquals(1, contents.appointments.size)
+        assertEquals(1, contents.examResults.size)
+        assertEquals(1, contents.diaryEntries.size)
+        assertEquals(0, contents.skippedEntries)
+        val restored = contents.diaryEntries.single()
+        assertEquals(entry.dayStartMillis, restored.dayStartMillis)
+        assertEquals(entry.title, restored.title)
+        assertEquals(entry.text, restored.text)
+        assertEquals(DiaryEntryType.THOUGHTS, restored.type)
+    }
+
+    @Test
+    fun parseBackupJson_acceptsBackupWithoutDiaryEntries() {
+        val root = JSONObject()
+            .put("app", "TransCare")
+            .put("schemaVersion", 1)
+            .put("appointments", JSONArray())
+            .put("examResults", JSONArray())
+
+        val contents = BackupManager.parseBackupJson(root.toString())
+
+        assertTrue(contents.diaryEntries.isEmpty())
+        assertEquals(0, contents.skippedEntries)
+    }
+
+    @Test
+    fun parseBackupJson_acceptsDiaryEntriesSnakeCaseKey() {
+        val root = JSONObject()
+            .put("diary_entries", JSONArray().put(validEntryJson()))
+
+        val contents = BackupManager.parseBackupJson(root.toString())
+
+        assertEquals(1, contents.diaryEntries.size)
+    }
+
+    @Test
+    fun parseBackupJson_defaultsMissingDiaryTypeToNotes() {
+        val root = JSONObject()
+            .put("diaryEntries", JSONArray().put(validEntryJson()))
+
+        val contents = BackupManager.parseBackupJson(root.toString())
+
+        assertEquals(DiaryEntryType.NOTES, contents.diaryEntries.single().type)
+    }
+
+    @Test
+    fun parseBackupJson_defaultsUnknownDiaryTypeToNotes() {
+        val root = JSONObject()
+            .put("diaryEntries", JSONArray().put(validEntryJson().put("type", "DREAMS")))
+
+        val contents = BackupManager.parseBackupJson(root.toString())
+
+        assertEquals(DiaryEntryType.NOTES, contents.diaryEntries.single().type)
+    }
+
+    @Test
+    fun parseBackupJson_skipsInvalidDiaryEntries() {
+        val entries = JSONArray()
+            .put(validEntryJson())
+            .put(JSONObject().put("dayStartMillis", dayStartMillis).put("title", " ").put("text", ""))
+            .put(JSONObject().put("dayStartMillis", -1L).put("title", "Bad day").put("text", "Text"))
+            .put("not an object")
+
+        val root = JSONObject().put("diaryEntries", entries)
+
+        val contents = BackupManager.parseBackupJson(root.toString())
+
+        assertEquals(1, contents.diaryEntries.size)
+        assertEquals(3, contents.skippedEntries)
+        assertEquals("Morning", contents.diaryEntries.single().title)
+    }
+
+    private fun validEntryJson(): JSONObject = JSONObject()
+        .put("dayStartMillis", dayStartMillis)
+        .put("title", "Morning")
+        .put("text", "Slept well.")
 }

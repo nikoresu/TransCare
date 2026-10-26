@@ -70,6 +70,7 @@ import kotlinx.coroutines.withContext
 import org.nikoresu.transcare.R
 import org.nikoresu.transcare.data.ProfileImageStore
 import org.nikoresu.transcare.domain.model.Appointment
+import org.nikoresu.transcare.domain.model.DiaryEntry
 import org.nikoresu.transcare.domain.model.ExamResult
 import org.nikoresu.transcare.domain.model.Profile
 import org.nikoresu.transcare.settings.AppLanguage
@@ -87,7 +88,8 @@ fun ProfileScreen(
     viewModel: ProfileViewModel,
     appointments: List<Appointment>,
     results: List<ExamResult>,
-    onImport: suspend (List<Appointment>, List<ExamResult>) -> Unit,
+    entries: List<DiaryEntry>,
+    onImport: suspend (List<Appointment>, List<ExamResult>, List<DiaryEntry>) -> Unit,
     modifier: Modifier = Modifier,
     onLanguageChanged: () -> Unit = {},
 ) {
@@ -354,6 +356,7 @@ fun ProfileScreen(
             BackupSection(
                 appointments = appointments,
                 results = results,
+                entries = entries,
                 onImport = onImport,
             )
 

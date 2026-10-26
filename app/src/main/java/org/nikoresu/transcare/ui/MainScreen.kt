@@ -31,6 +31,8 @@ import org.nikoresu.transcare.R
 import org.nikoresu.transcare.notifications.AppointmentReminderScheduler
 import org.nikoresu.transcare.ui.appointments.AppointmentsScreen
 import org.nikoresu.transcare.ui.appointments.AppointmentsViewModel
+import org.nikoresu.transcare.ui.diary.DiaryScreen
+import org.nikoresu.transcare.ui.diary.DiaryViewModel
 import org.nikoresu.transcare.ui.exams.ExamsScreen
 import org.nikoresu.transcare.ui.exams.ExamsViewModel
 import org.nikoresu.transcare.ui.profile.ProfileScreen
@@ -39,6 +41,7 @@ import org.nikoresu.transcare.ui.profile.ProfileViewModel
 private enum class MainTab(@param:StringRes val labelRes: Int, val icon: String) {
     SCHEDULE(labelRes = R.string.tab_schedule, icon = "🗓"),
     EXAMS(labelRes = R.string.tab_exams, icon = "🧪"),
+    DIARY(labelRes = R.string.tab_diary, icon = "📔"),
     PROFILE(labelRes = R.string.tab_profile, icon = "👤"),
 }
 
@@ -46,6 +49,7 @@ private enum class MainTab(@param:StringRes val labelRes: Int, val icon: String)
 fun MainScreen(
     appointmentsViewModel: AppointmentsViewModel,
     examsViewModel: ExamsViewModel,
+    diaryViewModel: DiaryViewModel,
     profileViewModel: ProfileViewModel,
     onLanguageChanged: () -> Unit,
 ) {
@@ -55,6 +59,7 @@ fun MainScreen(
     val appointments by appointmentsViewModel.appointments.collectAsStateWithLifecycle()
     val appointmentsLoaded by appointmentsViewModel.isLoaded.collectAsStateWithLifecycle()
     val results by examsViewModel.results.collectAsStateWithLifecycle()
+    val entries by diaryViewModel.entries.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
     // Resync whenever the app returns to the foreground: permission changes
@@ -113,13 +118,21 @@ fun MainScreen(
                     onEditorVisibilityChanged = { editorOpen = it },
                 )
 
+                MainTab.DIARY -> DiaryScreen(
+                    viewModel = diaryViewModel,
+                    modifier = Modifier.fillMaxSize(),
+                    onEditorVisibilityChanged = { editorOpen = it },
+                )
+
                 MainTab.PROFILE -> ProfileScreen(
                     viewModel = profileViewModel,
                     appointments = appointments,
                     results = results,
-                    onImport = { importedAppointments, importedResults ->
+                    entries = entries,
+                    onImport = { importedAppointments, importedResults, importedEntries ->
                         appointmentsViewModel.replaceAll(importedAppointments)
                         examsViewModel.replaceAll(importedResults)
+                        diaryViewModel.replaceAll(importedEntries)
                     },
                     onLanguageChanged = onLanguageChanged,
                     modifier = Modifier.fillMaxSize(),

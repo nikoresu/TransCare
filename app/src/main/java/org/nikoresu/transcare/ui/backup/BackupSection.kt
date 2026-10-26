@@ -43,6 +43,7 @@ import org.nikoresu.transcare.R
 import org.nikoresu.transcare.data.BackupContents
 import org.nikoresu.transcare.data.BackupManager
 import org.nikoresu.transcare.domain.model.Appointment
+import org.nikoresu.transcare.domain.model.DiaryEntry
 import org.nikoresu.transcare.domain.model.ExamResult
 
 private const val TAG = "BackupSection"
@@ -64,7 +65,8 @@ private data class StatusMessage(
 fun BackupSection(
     appointments: List<Appointment>,
     results: List<ExamResult>,
-    onImport: suspend (List<Appointment>, List<ExamResult>) -> Unit,
+    entries: List<DiaryEntry>,
+    onImport: suspend (List<Appointment>, List<ExamResult>, List<DiaryEntry>) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -85,7 +87,11 @@ fun BackupSection(
         scope.launch {
             try {
                 val contents = BackupManager.readFromUri(context.applicationContext, uri)
-                if (contents.appointments.isEmpty() && contents.examResults.isEmpty()) {
+                if (
+                    contents.appointments.isEmpty() &&
+                    contents.examResults.isEmpty() &&
+                    contents.diaryEntries.isEmpty()
+                ) {
                     importMessage = StatusMessage(
                         text = resources.getString(R.string.backup_empty_file),
                         isError = true,
@@ -133,6 +139,10 @@ fun BackupSection(
                     value = results.size.toString(),
                 )
                 BackupRow(
+                    label = stringResource(R.string.backup_diary_entries),
+                    value = entries.size.toString(),
+                )
+                BackupRow(
                     label = stringResource(R.string.backup_file_name),
                     value = BackupManager.fileName(),
                 )
@@ -149,6 +159,7 @@ fun BackupSection(
                             context = context.applicationContext,
                             appointments = appointments,
                             results = results,
+                            entries = entries,
                         )
                         StatusMessage(
                             text = resources.getString(
@@ -239,6 +250,11 @@ fun BackupSection(
             importData.examResults.size,
             R.plurals.exam_result_count,
         )
+        val importedEntries = countsLabel(
+            resources,
+            importData.diaryEntries.size,
+            R.plurals.diary_entry_count,
+        )
         AlertDialog(
             onDismissRequest = { pendingImport = null },
             title = { Text(text = stringResource(R.string.backup_replace_title)) },
@@ -249,6 +265,7 @@ fun BackupSection(
                             R.string.backup_contains,
                             importedAppointments,
                             importedResults,
+                            importedEntries,
                         ),
                     )
                     Text(
@@ -263,6 +280,11 @@ fun BackupSection(
                                 resources,
                                 results.size,
                                 R.plurals.exam_result_count,
+                            ),
+                            countsLabel(
+                                resources,
+                                entries.size,
+                                R.plurals.diary_entry_count,
                             ),
                         ),
                     )
@@ -289,6 +311,7 @@ fun BackupSection(
                                     onImport(
                                         importData.appointments,
                                         importData.examResults,
+                                        importData.diaryEntries,
                                     )
                                 }
                                 val skipped = if (importData.skippedEntries > 0) {
@@ -306,12 +329,14 @@ fun BackupSection(
                                             R.string.backup_imported,
                                             importedAppointments,
                                             importedResults,
+                                            importedEntries,
                                         )
                                     } else {
                                         resources.getString(
                                             R.string.backup_imported_with_skipped,
                                             importedAppointments,
                                             importedResults,
+                                            importedEntries,
                                             skipped,
                                         )
                                     },

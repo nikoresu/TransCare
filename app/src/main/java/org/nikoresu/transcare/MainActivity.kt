@@ -9,6 +9,7 @@ import androidx.lifecycle.ViewModelProvider
 import org.nikoresu.transcare.settings.LocalePreferences
 import org.nikoresu.transcare.ui.MainScreen
 import org.nikoresu.transcare.ui.appointments.AppointmentsViewModel
+import org.nikoresu.transcare.ui.diary.DiaryViewModel
 import org.nikoresu.transcare.ui.exams.ExamsViewModel
 import org.nikoresu.transcare.ui.profile.ProfileViewModel
 import org.nikoresu.transcare.ui.theme.TranscareTheme
@@ -25,6 +26,7 @@ class MainActivity : ComponentActivity() {
 
         val appointmentsViewModel = ViewModelProvider(this)[AppointmentsViewModel::class.java]
         val examsViewModel = ViewModelProvider(this)[ExamsViewModel::class.java]
+        val diaryViewModel = ViewModelProvider(this)[DiaryViewModel::class.java]
         val profileViewModel = ViewModelProvider(this)[ProfileViewModel::class.java]
 
         setContent {
@@ -32,6 +34,7 @@ class MainActivity : ComponentActivity() {
                 MainScreen(
                     appointmentsViewModel = appointmentsViewModel,
                     examsViewModel = examsViewModel,
+                    diaryViewModel = diaryViewModel,
                     profileViewModel = profileViewModel,
                     onLanguageChanged = { recreate() },
                 )
