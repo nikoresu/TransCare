@@ -138,6 +138,43 @@
     <string name="exams_invalid_value">Ingresa un número positivo válido.</string>
     <string name="exams_note">Nota (opcional)</string>
 
+    <!-- PDF import -->
+    <string name="exams_import_pdf">Importar desde PDF</string>
+    <string name="exams_pdf_short">PDF</string>
+    <string name="exams_pdf_reading">Leyendo el PDF…</string>
+    <string name="exams_pdf_review_title">Revisar importación del PDF</string>
+    <string name="exams_pdf_review_description">Revisa la fecha y los valores encontrados en el PDF antes de importarlos. Los rangos de referencia se ignoran.</string>
+    <string name="exams_pdf_date">Fecha de la muestra</string>
+    <string name="exams_pdf_date_missing">No se encontró una fecha en el PDF. Elige la fecha de la muestra.</string>
+    <string name="exams_pdf_values_title">Valores encontrados</string>
+    <string name="exams_pdf_duplicate">Ya registrado en esta fecha</string>
+    <string name="exams_pdf_select_all">Seleccionar todos</string>
+    <string name="exams_pdf_deselect_all">Deseleccionar todos</string>
+    <string name="exams_pdf_nothing_selected">Selecciona al menos un resultado con un valor válido.</string>
+    <string name="exams_pdf_empty_hint">¿Tienes un informe de laboratorio en PDF? Impórtalo y revisa los valores antes de guardarlos.</string>
+    <string name="exams_pdf_error_title">No se pudo importar el PDF</string>
+    <string name="exams_pdf_error_too_large">Este PDF es demasiado grande. Elige un archivo de menos de 10 MB y como máximo 30 páginas.</string>
+    <string name="exams_pdf_error_encrypted">Este PDF está protegido con contraseña. Quita la contraseña e inténtalo de nuevo.</string>
+    <string name="exams_pdf_error_no_text">Este PDF no tiene texto seleccionable. Los PDF escaneados o que solo contienen imágenes no son compatibles.</string>
+    <string name="exams_pdf_error_no_results">No se reconocieron resultados de laboratorio en este PDF. Puedes agregarlos manualmente.</string>
+    <string name="exams_pdf_error_unreadable">No se pudo leer este PDF. Asegúrate de que sea un archivo PDF válido y sin cifrar.</string>
+
+    <plurals name="exams_pdf_found_count">
+        <item quantity="one">%d resultado encontrado</item>
+        <item quantity="many">%d de resultados encontrados</item>
+        <item quantity="other">%d resultados encontrados</item>
+    </plurals>
+    <plurals name="exams_pdf_import_action">
+        <item quantity="one">Importar %d resultado</item>
+        <item quantity="many">Importar %d de resultados</item>
+        <item quantity="other">Importar %d resultados</item>
+    </plurals>
+    <plurals name="exams_pdf_imported_count">
+        <item quantity="one">Se importó %d resultado.</item>
+        <item quantity="many">Se importaron %d de resultados.</item>
+        <item quantity="other">Se importaron %d resultados.</item>
+    </plurals>
+
     <plurals name="exams_trend_count">
         <item quantity="one">Tendencia de %d resultado</item>
         <item quantity="many">Tendencia de %d de resultados</item>

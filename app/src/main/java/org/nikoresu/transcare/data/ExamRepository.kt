@@ -43,6 +43,16 @@ class ExamRepository(context: Context) {
         saveResults()
     }
 
+    /** Appends several results at once, preserving existing entries. */
+    suspend fun addAll(results: List<ExamResult>) {
+        if (results.isEmpty()) return
+        var nextId = nextId()
+        _results.value = _results.value + results.map { result ->
+            result.copy(id = nextId++)
+        }
+        saveResults()
+    }
+
     suspend fun update(result: ExamResult) {
         _results.value = _results.value.map { if (it.id == result.id) result else it }
         saveResults()

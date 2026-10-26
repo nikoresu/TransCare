@@ -26,6 +26,11 @@ class ExamsViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch { repository.delete(result) }
     }
 
+    /** Suspends until the parsed PDF results have been appended and saved. */
+    suspend fun addResults(results: List<ExamResult>) {
+        repository.addAll(results)
+    }
+
     /** Suspends until the imported data has been persisted. */
     suspend fun replaceAll(results: List<ExamResult>) {
         repository.replaceAll(results)

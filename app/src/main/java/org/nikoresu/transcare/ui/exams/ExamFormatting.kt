@@ -1,7 +1,11 @@
 package org.nikoresu.transcare.ui.exams
 
+import android.text.format.DateFormat
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import org.nikoresu.transcare.R
 import org.nikoresu.transcare.domain.model.ExamMetric
 import org.nikoresu.transcare.domain.model.ExamStatus
@@ -25,3 +29,10 @@ internal fun ExamMetric.referenceLabelText(): String = referenceLabel(
 
 @Composable
 internal fun ExamStatus.labelText(): String = stringResource(labelRes)
+
+@Composable
+internal fun formatExamDate(date: LocalDate): String {
+    val locale = LocalConfiguration.current.locales[0]
+    val pattern = DateFormat.getBestDateTimePattern(locale, "yMMMd")
+    return DateTimeFormatter.ofPattern(pattern, locale).format(date)
+}

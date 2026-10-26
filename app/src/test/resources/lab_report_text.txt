@@ -1,0 +1,22 @@
+LABORATORIO CLINICO SAN RAFAEL
+NIT: 900.123.456-7
+Paciente: Natalie
+Documento: 12345678
+Fecha de nacimiento: 12/05/1990
+Fecha de toma: 25/10/2026 07:15
+Fecha de impresion: 27/10/2026 10:42
+Medico: Dra. Perez
+Resultado                         Unidad        Referencia
+Estradiol (E2)                    23.8          pg/mL         12.0 - 40.0
+Testosterona total                494           ng/dL         264 - 916
+LH                                10.1          mIU/mL        0.5 - 5.0
+FSH                               2.6           mIU/mL        0.5 - 5.0
+Prolactina                        9.59          ng/mL         4.0 - 24.0
+Vitamina D 25-OH                  13.8          ng/mL         30 - 100
+Potasio                           4.04          mmol/L        3.5 - 5.1
+Hematocrito                       49.9          %             36 - 48
+Hemoglobina                       17.5          g/dL          12 - 16
+ALT                               18.1          U/L           7 - 35
+AST                               19.7          U/L           8 - 33
+Hemoglobina glicosilada           5.3           %             4.0 - 5.6
+Los resultados deben ser interpretados por un profesional de la salud.

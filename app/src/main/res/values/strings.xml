@@ -134,6 +134,40 @@
     <string name="exams_invalid_value">Enter a valid positive number.</string>
     <string name="exams_note">Note (optional)</string>
 
+    <!-- PDF import -->
+    <string name="exams_import_pdf">Import from PDF</string>
+    <string name="exams_pdf_short">PDF</string>
+    <string name="exams_pdf_reading">Reading PDF…</string>
+    <string name="exams_pdf_review_title">Review PDF import</string>
+    <string name="exams_pdf_review_description">Check the date and values found in the PDF before importing. Reference ranges are ignored.</string>
+    <string name="exams_pdf_date">Sample date</string>
+    <string name="exams_pdf_date_missing">No date was found in the PDF. Choose the sample date.</string>
+    <string name="exams_pdf_values_title">Values found</string>
+    <string name="exams_pdf_duplicate">Already recorded on this date</string>
+    <string name="exams_pdf_select_all">Select all</string>
+    <string name="exams_pdf_deselect_all">Deselect all</string>
+    <string name="exams_pdf_nothing_selected">Select at least one result with a valid value.</string>
+    <string name="exams_pdf_empty_hint">Have a PDF lab report? Import it and review the values before saving.</string>
+    <string name="exams_pdf_error_title">Could not import PDF</string>
+    <string name="exams_pdf_error_too_large">This PDF is too large. Choose a file smaller than 10 MB with at most 30 pages.</string>
+    <string name="exams_pdf_error_encrypted">This PDF is password-protected. Remove the password and try again.</string>
+    <string name="exams_pdf_error_no_text">This PDF has no selectable text. Scanned or image-only PDFs are not supported.</string>
+    <string name="exams_pdf_error_no_results">No lab results were recognized in this PDF. You can add them manually.</string>
+    <string name="exams_pdf_error_unreadable">Could not read this PDF. Make sure it is a valid, unencrypted PDF file.</string>
+
+    <plurals name="exams_pdf_found_count">
+        <item quantity="one">%d result found</item>
+        <item quantity="other">%d results found</item>
+    </plurals>
+    <plurals name="exams_pdf_import_action">
+        <item quantity="one">Import %d result</item>
+        <item quantity="other">Import %d results</item>
+    </plurals>
+    <plurals name="exams_pdf_imported_count">
+        <item quantity="one">%d result imported.</item>
+        <item quantity="other">%d results imported.</item>
+    </plurals>
+
     <plurals name="exams_trend_count">
         <item quantity="one">Trend across %d result</item>
         <item quantity="other">Trend across %d results</item>

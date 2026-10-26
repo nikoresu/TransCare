@@ -1,5 +1,7 @@
 package org.nikoresu.transcare.ui.exams
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -12,17 +14,22 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -33,6 +40,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -43,19 +52,28 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import android.text.format.DateFormat
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.nikoresu.transcare.R
 import org.nikoresu.transcare.domain.model.ExamMetric
 import org.nikoresu.transcare.domain.model.ExamResult
 import org.nikoresu.transcare.domain.model.ExamStatus
+import org.nikoresu.transcare.pdf.ParsedPdfExams
+import org.nikoresu.transcare.pdf.PdfExamExtractor
+import org.nikoresu.transcare.pdf.PdfImportException
+
+/** Some document providers report PDFs with a generic MIME type. */
+private val PDF_MIME_TYPES = arrayOf("application/pdf", "application/octet-stream")
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -65,13 +83,22 @@ fun ExamsScreen(
     onEditorVisibilityChanged: (Boolean) -> Unit = {},
 ) {
     val results by viewModel.results.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    val resources = LocalResources.current
+    val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     var selectedMetric by remember { mutableStateOf<ExamMetric?>(null) }
     var showEditor by remember { mutableStateOf(false) }
     var editingResult by remember { mutableStateOf<ExamResult?>(null) }
     var pendingDelete by remember { mutableStateOf<ExamResult?>(null) }
+    var pdfPreview by rememberSaveable { mutableStateOf<ParsedPdfExams?>(null) }
+    var isReadingPdf by remember { mutableStateOf(false) }
+    var pdfError by remember { mutableStateOf<PdfImportException?>(null) }
 
-    LaunchedEffect(showEditor) { onEditorVisibilityChanged(showEditor) }
+    LaunchedEffect(showEditor, pdfPreview) {
+        onEditorVisibilityChanged(showEditor || pdfPreview != null)
+    }
     DisposableEffect(Unit) {
         onDispose { onEditorVisibilityChanged(false) }
     }
@@ -81,8 +108,28 @@ fun ExamsScreen(
         }
     }
 
-    if (showEditor) {
-        ExamEditorScreen(
+    val pdfLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument(),
+    ) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        isReadingPdf = true
+        pdfError = null
+        scope.launch {
+            try {
+                pdfPreview = PdfExamExtractor.extract(context.applicationContext, uri)
+            } catch (exception: PdfImportException) {
+                pdfError = exception
+            } catch (exception: Exception) {
+                pdfError = PdfImportException.Unreadable(exception)
+            } finally {
+                isReadingPdf = false
+            }
+        }
+    }
+
+    val preview = pdfPreview
+    when {
+        showEditor -> ExamEditorScreen(
             initialResult = editingResult,
             initialMetric = editingResult?.metric ?: selectedMetric,
             onDismiss = { showEditor = false },
@@ -98,8 +145,27 @@ fun ExamsScreen(
                 showEditor = false
             },
         )
-    } else {
-        ExamsContent(
+
+        preview != null -> PdfImportScreen(
+            parsed = preview,
+            existingResults = results,
+            onDismiss = { pdfPreview = null },
+            onImport = { imported ->
+                pdfPreview = null
+                scope.launch {
+                    withContext(NonCancellable) { viewModel.addResults(imported) }
+                    snackbarHostState.showSnackbar(
+                        resources.getQuantityString(
+                            R.plurals.exams_pdf_imported_count,
+                            imported.size,
+                            imported.size,
+                        ),
+                    )
+                }
+            },
+        )
+
+        else -> ExamsContent(
             results = results,
             selectedMetric = selectedMetric,
             onSelectMetric = { selectedMetric = it },
@@ -112,6 +178,8 @@ fun ExamsScreen(
                 showEditor = true
             },
             onDelete = { pendingDelete = it },
+            onImportPdf = { pdfLauncher.launch(PDF_MIME_TYPES) },
+            snackbarHostState = snackbarHostState,
             modifier = modifier,
         )
     }
@@ -139,6 +207,47 @@ fun ExamsScreen(
             },
         )
     }
+
+    val importError = pdfError
+    if (importError != null) {
+        AlertDialog(
+            onDismissRequest = { pdfError = null },
+            title = { Text(text = stringResource(R.string.exams_pdf_error_title)) },
+            text = { Text(text = stringResource(importError.messageRes)) },
+            confirmButton = {
+                TextButton(onClick = { pdfError = null }) {
+                    Text(text = stringResource(R.string.action_ok))
+                }
+            },
+        )
+    }
+
+    if (isReadingPdf) {
+        Dialog(
+            onDismissRequest = {},
+            properties = DialogProperties(
+                dismissOnBackPress = false,
+                dismissOnClickOutside = false,
+            ),
+        ) {
+            Surface(
+                shape = MaterialTheme.shapes.large,
+                tonalElevation = 6.dp,
+            ) {
+                Row(
+                    modifier = Modifier.padding(24.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        strokeWidth = 2.dp,
+                    )
+                    Text(text = stringResource(R.string.exams_pdf_reading))
+                }
+            }
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -150,6 +259,8 @@ private fun ExamsContent(
     onAdd: () -> Unit,
     onEdit: (ExamResult) -> Unit,
     onDelete: (ExamResult) -> Unit,
+    onImportPdf: () -> Unit,
+    snackbarHostState: SnackbarHostState,
     modifier: Modifier = Modifier,
 ) {
     val historyByMetric = remember(results) {
@@ -165,6 +276,7 @@ private fun ExamsContent(
     Scaffold(
         modifier = modifier,
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text(text = stringResource(R.string.exams_title)) },
@@ -173,6 +285,9 @@ private fun ExamsContent(
                         TextButton(onClick = { onSelectMetric(null) }) {
                             Text(text = stringResource(R.string.exams_overview))
                         }
+                    }
+                    TextButton(onClick = onImportPdf) {
+                        Text(text = stringResource(R.string.exams_pdf_short))
                     }
                 },
             )
@@ -192,7 +307,7 @@ private fun ExamsContent(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             if (results.isEmpty()) {
-                EmptyExamsState()
+                EmptyExamsState(onImportPdf = onImportPdf)
             } else {
                 MetricFilterRow(
                     metrics = metricsWithResults,
@@ -235,7 +350,7 @@ private fun ExamsContent(
 }
 
 @Composable
-private fun EmptyExamsState() {
+private fun EmptyExamsState(onImportPdf: () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(
             text = stringResource(R.string.exams_empty_title),
@@ -251,6 +366,17 @@ private fun EmptyExamsState() {
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        Text(
+            text = stringResource(R.string.exams_pdf_empty_hint),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        OutlinedButton(
+            onClick = onImportPdf,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text(text = stringResource(R.string.exams_import_pdf))
+        }
     }
 }
 
@@ -738,11 +864,4 @@ private fun Sparkline(
             )
         }
     }
-}
-
-@Composable
-private fun formatExamDate(date: LocalDate): String {
-    val locale = LocalConfiguration.current.locales[0]
-    val pattern = DateFormat.getBestDateTimePattern(locale, "yMMMd")
-    return DateTimeFormatter.ofPattern(pattern, locale).format(date)
 }
