@@ -1,0 +1,221 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">transcare</string>
+
+    <!-- Navigation -->
+    <string name="tab_schedule">Agenda</string>
+    <string name="tab_exams">Exámenes</string>
+    <string name="tab_profile">Perfil</string>
+
+    <!-- Common actions and states -->
+    <string name="action_back">Atrás</string>
+    <string name="action_cancel">Cancelar</string>
+    <string name="action_save">Guardar</string>
+    <string name="action_delete">Eliminar</string>
+    <string name="action_edit">Editar</string>
+    <string name="action_ok">Aceptar</string>
+    <string name="action_replace">Reemplazar</string>
+    <string name="status_saving">Guardando…</string>
+    <string name="status_importing">Importando…</string>
+    <string name="status_updating">Actualizando…</string>
+
+    <!-- Profile -->
+    <string name="profile_title">Perfil</string>
+    <string name="profile_photo_updated">Foto de perfil actualizada.</string>
+    <string name="profile_photo_update_failed">No se pudo actualizar la foto de perfil. Intenta con otra imagen.</string>
+    <string name="profile_media_permission_denied">No se otorgó acceso a la fototeca. Aún puedes seleccionar una foto.</string>
+    <string name="profile_default_name">Tu perfil</string>
+    <string name="profile_default_email">Agrega tu correo electrónico</string>
+    <string name="profile_add_photo">Agregar foto</string>
+    <string name="profile_change_photo">Cambiar foto</string>
+    <string name="profile_remove_photo">Quitar foto</string>
+    <string name="profile_photo_removed">Foto de perfil eliminada.</string>
+    <string name="profile_photo_remove_failed">No se pudo quitar la foto de perfil.</string>
+    <string name="profile_personal_information">Información personal</string>
+    <string name="profile_name">Nombre</string>
+    <string name="profile_email">Correo electrónico</string>
+    <string name="profile_saved">Perfil guardado.</string>
+    <string name="profile_save_failed">No se pudo guardar tu perfil. Inténtalo de nuevo.</string>
+    <string name="profile_save">Guardar perfil</string>
+    <string name="profile_storage_note">Tu perfil permanece en este dispositivo. La imagen se copia al almacenamiento privado de la app, así que no se necesita permiso para acceder a las fotos.</string>
+    <string name="profile_photo_content_description">Foto de perfil</string>
+
+    <!-- Language -->
+    <string name="language_title">Idioma</string>
+    <string name="language_system">Predeterminado del sistema</string>
+    <string name="language_english">English</string>
+    <string name="language_spanish_latam">Español (Latinoamérica)</string>
+    <string name="language_note">Los cambios se aplican de inmediato.</string>
+
+    <!-- Backup -->
+    <string name="backup_title">Copia de seguridad</string>
+    <string name="backup_description">Guarda todas las citas y los resultados de exámenes en un único archivo JSON en la carpeta Descargas de este dispositivo, o restaura una copia de seguridad anterior.</string>
+    <string name="backup_appointments">Citas</string>
+    <string name="backup_exam_results">Resultados de exámenes</string>
+    <string name="backup_file_name">Nombre del archivo</string>
+    <string name="backup_saved">Copia de seguridad guardada: Descargas/%1$s</string>
+    <string name="backup_save_failed">No se pudo guardar la copia de seguridad. Inténtalo de nuevo.</string>
+    <string name="backup_save_action">Guardar copia de seguridad en Descargas</string>
+    <string name="backup_restore_title">Restaurar desde una copia de seguridad</string>
+    <string name="backup_restore_description">Elige un archivo de copia de seguridad de TransCare. La importación reemplaza las citas y los resultados de exámenes que están actualmente en la app.</string>
+    <string name="backup_import_action">Importar copia de seguridad desde un archivo</string>
+    <string name="backup_security_note">La copia de seguridad es JSON sin cifrar. Contiene información de salud, así que guárdala y compártela con cuidado.</string>
+    <string name="backup_empty_file">No se encontraron citas ni resultados de exámenes en este archivo.</string>
+    <string name="backup_read_failed">No se pudo leer este archivo como una copia de seguridad de TransCare.</string>
+    <string name="backup_import_failed">No se pudo importar la copia de seguridad. Tus datos actuales no se modificaron.</string>
+    <string name="backup_replace_title">¿Reemplazar los datos actuales?</string>
+    <string name="backup_contains">Esta copia de seguridad contiene %1$s y %2$s.</string>
+    <string name="backup_will_replace">La importación reemplazará los datos actuales: %1$s y %2$s.</string>
+    <string name="backup_imported">Se importaron %1$s y %2$s.</string>
+    <string name="backup_imported_with_skipped">Se importaron %1$s y %2$s. %3$s</string>
+
+    <plurals name="appointment_count">
+        <item quantity="one">%d cita</item>
+        <item quantity="many">%d de citas</item>
+        <item quantity="other">%d citas</item>
+    </plurals>
+    <plurals name="exam_result_count">
+        <item quantity="one">%d resultado de examen</item>
+        <item quantity="many">%d de resultados de exámenes</item>
+        <item quantity="other">%d resultados de exámenes</item>
+    </plurals>
+    <plurals name="invalid_entry_will_be_skipped">
+        <item quantity="one">Se omitirá %d entrada no válida.</item>
+        <item quantity="many">Se omitirán %d de entradas no válidas.</item>
+        <item quantity="other">Se omitirán %d entradas no válidas.</item>
+    </plurals>
+    <plurals name="invalid_entry_skipped">
+        <item quantity="one">Se omitió %d entrada no válida.</item>
+        <item quantity="many">Se omitieron %d de entradas no válidas.</item>
+        <item quantity="other">Se omitieron %d entradas no válidas.</item>
+    </plurals>
+
+    <!-- Appointments -->
+    <string name="appointments_today">Hoy</string>
+    <string name="appointments_add">+ Agregar cita</string>
+    <string name="appointments_reminders_off_title">Los recordatorios están desactivados</string>
+    <string name="appointments_reminders_off_message">Permite las notificaciones para recibir recordatorios 3 días, 1 día y 1 hora antes de las citas.</string>
+    <string name="appointments_allow">Permitir</string>
+    <string name="appointments_reminders_late_title">Los recordatorios pueden llegar tarde</string>
+    <string name="appointments_reminders_late_message">Android puede retrasar los recordatorios a menos que se permitan las alarmas exactas para TransCare.</string>
+    <string name="appointments_settings">Ajustes</string>
+    <string name="appointments_title">Citas</string>
+    <string name="appointments_empty_month">No hay citas programadas para este mes.</string>
+    <string name="appointments_delete_title">¿Eliminar la cita?</string>
+    <string name="appointments_delete_message">La cita se eliminará de forma permanente.</string>
+    <string name="appointments_no_place">Sin lugar</string>
+    <string name="appointments_new_title">Nueva cita</string>
+    <string name="appointments_edit_title">Editar cita</string>
+    <string name="appointments_date">Fecha</string>
+    <string name="appointments_time">Hora</string>
+    <string name="appointments_reminders_note">Recordatorios: 3 días, 1 día y 1 hora antes de esta cita.</string>
+    <string name="appointments_doctor">Médico</string>
+    <string name="appointments_place">Lugar</string>
+    <string name="appointments_select_time">Seleccionar hora</string>
+
+    <!-- Exams -->
+    <string name="exams_title">Exámenes y resultados</string>
+    <string name="exams_overview">Resumen</string>
+    <string name="exams_add">+ Agregar resultado</string>
+    <string name="exams_delete_title">¿Eliminar el resultado?</string>
+    <string name="exams_delete_message">Este resultado de examen se eliminará de forma permanente.</string>
+    <string name="exams_reference_disclaimer">Los rangos de referencia son guías generales para el seguimiento de la terapia hormonal feminizante, no son consejo médico. Comenta los resultados con tu profesional de salud.</string>
+    <string name="exams_empty_title">Tus resultados de laboratorio, en un solo lugar</string>
+    <string name="exams_empty_description">Sigue el estradiol, la testosterona, la LH, la FSH, la prolactina, la SHBG y otros valores a lo largo del tiempo.</string>
+    <string name="exams_empty_action">Toca “+ Agregar resultado” para registrar tu primer examen. Los resultados permanecen en este dispositivo.</string>
+    <string name="exams_all">Todos</string>
+    <string name="exams_latest">Último · %1$s</string>
+    <string name="exams_reference">Referencia: %1$s</string>
+    <string name="exams_no_results">Aún no hay resultados de %1$s.</string>
+    <string name="exams_reference_band">Banda sombreada = rango de referencia</string>
+    <string name="exams_add_for_trend">Agrega otro resultado para ver una tendencia.</string>
+    <string name="exams_history">Historial</string>
+    <string name="exams_new_title">Nuevo resultado</string>
+    <string name="exams_edit_title">Editar resultado</string>
+    <string name="exams_metric">Parámetro</string>
+    <string name="exams_reference_with_note">Referencia: %1$s · %2$s</string>
+    <string name="exams_value">Valor</string>
+    <string name="exams_invalid_value">Ingresa un número positivo válido.</string>
+    <string name="exams_note">Nota (opcional)</string>
+
+    <plurals name="exams_trend_count">
+        <item quantity="one">Tendencia de %d resultado</item>
+        <item quantity="many">Tendencia de %d de resultados</item>
+        <item quantity="other">Tendencia de %d resultados</item>
+    </plurals>
+
+    <string name="exam_status_below">Bajo</string>
+    <string name="exam_status_in_range">En rango</string>
+    <string name="exam_status_above">Alto</string>
+    <string name="exam_status_no_range">Sin rango</string>
+
+    <!-- Exam reference labels -->
+    <string name="exam_reference_under_label">menos de</string>
+    <string name="exam_reference_over_label">más de</string>
+    <string name="exam_reference_lab_specific">rango específico del laboratorio</string>
+
+    <!-- Exam metrics -->
+    <string name="exam_metric_estradiol">Estradiol (E2)</string>
+    <string name="exam_metric_estradiol_short">E2</string>
+    <string name="exam_metric_estradiol_note">Rango objetivo de feminización, medido en el punto más bajo.</string>
+    <string name="exam_metric_testosterone_total">Testosterona total</string>
+    <string name="exam_metric_testosterone_total_short">T</string>
+    <string name="exam_metric_testosterone_total_note">Objetivo de feminización: menos de 50 ng/dL.</string>
+    <string name="exam_metric_lh">Hormona luteinizante (LH)</string>
+    <string name="exam_metric_lh_short">LH</string>
+    <string name="exam_metric_lh_note">Se espera la supresión durante la terapia hormonal feminizante; los rangos previos a la terapia son diferentes.</string>
+    <string name="exam_metric_fsh">Hormona foliculoestimulante (FSH)</string>
+    <string name="exam_metric_fsh_short">FSH</string>
+    <string name="exam_metric_fsh_note">Se espera la supresión durante la terapia hormonal feminizante; los rangos previos a la terapia son diferentes.</string>
+    <string name="exam_metric_prolactin">Prolactina</string>
+    <string name="exam_metric_prolactin_short">PRL</string>
+    <string name="exam_metric_prolactin_note">Conviene monitorearla con algunos antiandrógenos.</string>
+    <string name="exam_metric_shbg">Globulina fijadora de hormonas sexuales (SHBG)</string>
+    <string name="exam_metric_shbg_short">SHBG</string>
+    <string name="exam_metric_shbg_note">Ayuda a interpretar los niveles hormonales.</string>
+    <string name="exam_metric_free_testosterone">Testosterona libre</string>
+    <string name="exam_metric_free_testosterone_short">T libre</string>
+    <string name="exam_metric_free_testosterone_note">Marcador opcional; los rangos de referencia son específicos del laboratorio.</string>
+    <string name="exam_metric_dht">Dihidrotestosterona (DHT)</string>
+    <string name="exam_metric_dht_short">DHT</string>
+    <string name="exam_metric_dht_note">Marcador de exceso de andrógenos; los rangos de referencia son específicos del laboratorio.</string>
+    <string name="exam_metric_progesterone">Progesterona</string>
+    <string name="exam_metric_progesterone_short">P4</string>
+    <string name="exam_metric_progesterone_note">El rango depende de si se usa progesterona y de cómo se usa.</string>
+    <string name="exam_metric_hematocrit">Hematocrito</string>
+    <string name="exam_metric_hematocrit_short">Hct</string>
+    <string name="exam_metric_hematocrit_note">Rango de referencia femenino general.</string>
+    <string name="exam_metric_hemoglobin">Hemoglobina</string>
+    <string name="exam_metric_hemoglobin_short">Hb</string>
+    <string name="exam_metric_hemoglobin_note">Rango de referencia femenino general.</string>
+    <string name="exam_metric_potassium">Potasio</string>
+    <string name="exam_metric_potassium_short">K</string>
+    <string name="exam_metric_potassium_note">Relevante cuando se toma espironolactona.</string>
+    <string name="exam_metric_creatinine">Creatinina</string>
+    <string name="exam_metric_creatinine_short">Cr</string>
+    <string name="exam_metric_creatinine_note">Rango de referencia femenino general.</string>
+    <string name="exam_metric_alt">Alanina aminotransferasa (ALT)</string>
+    <string name="exam_metric_alt_short">ALT</string>
+    <string name="exam_metric_alt_note">Rango de referencia femenino general.</string>
+    <string name="exam_metric_ast">Aspartato aminotransferasa (AST)</string>
+    <string name="exam_metric_ast_short">AST</string>
+    <string name="exam_metric_ast_note">Rango de referencia femenino general.</string>
+    <string name="exam_metric_vitamin_d">Vitamina D, 25-OH</string>
+    <string name="exam_metric_vitamin_d_short">Vit D</string>
+    <string name="exam_metric_vitamin_d_note">Rango de referencia general.</string>
+    <string name="exam_metric_ferritin">Ferritina</string>
+    <string name="exam_metric_ferritin_short">Ferritina</string>
+    <string name="exam_metric_ferritin_note">Rango de referencia femenino general.</string>
+    <string name="exam_metric_hba1c">HbA1c</string>
+    <string name="exam_metric_hba1c_short">HbA1c</string>
+    <string name="exam_metric_hba1c_note">Rango de referencia general.</string>
+
+    <!-- Notifications -->
+    <string name="notification_channel_name">Recordatorios de citas</string>
+    <string name="notification_channel_description">Recordatorios 3 días, 1 día y 1 hora antes de las citas</string>
+    <string name="notification_title">Cita en %1$s</string>
+    <string name="notification_appointment_fallback">Cita</string>
+    <string name="reminder_three_days">3 días</string>
+    <string name="reminder_one_day">1 día</string>
+    <string name="reminder_one_hour">1 hora</string>
+</resources>

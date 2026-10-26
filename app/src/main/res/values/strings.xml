@@ -1,0 +1,216 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">transcare</string>
+
+    <!-- Navigation -->
+    <string name="tab_schedule">Schedule</string>
+    <string name="tab_exams">Exams</string>
+    <string name="tab_profile">Profile</string>
+
+    <!-- Common actions and states -->
+    <string name="action_back">Back</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_save">Save</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_edit">Edit</string>
+    <string name="action_ok">OK</string>
+    <string name="action_replace">Replace</string>
+    <string name="status_saving">Saving…</string>
+    <string name="status_importing">Importing…</string>
+    <string name="status_updating">Updating…</string>
+
+    <!-- Profile -->
+    <string name="profile_title">Profile</string>
+    <string name="profile_photo_updated">Profile photo updated.</string>
+    <string name="profile_photo_update_failed">Could not update the profile photo. Please try another image.</string>
+    <string name="profile_media_permission_denied">Photo library access was not granted. You can still select one photo.</string>
+    <string name="profile_default_name">Your profile</string>
+    <string name="profile_default_email">Add your email</string>
+    <string name="profile_add_photo">Add photo</string>
+    <string name="profile_change_photo">Change photo</string>
+    <string name="profile_remove_photo">Remove photo</string>
+    <string name="profile_photo_removed">Profile photo removed.</string>
+    <string name="profile_photo_remove_failed">Could not remove the profile photo.</string>
+    <string name="profile_personal_information">Personal information</string>
+    <string name="profile_name">Name</string>
+    <string name="profile_email">Email</string>
+    <string name="profile_saved">Profile saved.</string>
+    <string name="profile_save_failed">Could not save your profile. Please try again.</string>
+    <string name="profile_save">Save profile</string>
+    <string name="profile_storage_note">Your profile stays on this device. The picture is copied into the app\'s private storage, so no photo access permission is needed.</string>
+    <string name="profile_photo_content_description">Profile photo</string>
+
+    <!-- Language -->
+    <string name="language_title">Language</string>
+    <string name="language_system">System default</string>
+    <string name="language_english">English</string>
+    <string name="language_spanish_latam">Español (Latinoamérica)</string>
+    <string name="language_note">Changes apply immediately.</string>
+
+    <!-- Backup -->
+    <string name="backup_title">Backup</string>
+    <string name="backup_description">Save all appointments and exam results to a single JSON file in the Downloads folder of this device, or restore a previous backup.</string>
+    <string name="backup_appointments">Appointments</string>
+    <string name="backup_exam_results">Exam results</string>
+    <string name="backup_file_name">File name</string>
+    <string name="backup_saved">Backup saved: Downloads/%1$s</string>
+    <string name="backup_save_failed">Could not save the backup. Please try again.</string>
+    <string name="backup_save_action">Save backup to Downloads</string>
+    <string name="backup_restore_title">Restore from a backup</string>
+    <string name="backup_restore_description">Choose a TransCare backup file. Importing replaces the appointments and exam results currently in the app.</string>
+    <string name="backup_import_action">Import backup from file</string>
+    <string name="backup_security_note">The backup is plain JSON and is not encrypted. It contains health information, so store and share it carefully.</string>
+    <string name="backup_empty_file">No appointments or exam results were found in this file.</string>
+    <string name="backup_read_failed">Could not read this file as a TransCare backup.</string>
+    <string name="backup_import_failed">Could not import the backup. Your current data was not changed.</string>
+    <string name="backup_replace_title">Replace current data?</string>
+    <string name="backup_contains">This backup contains %1$s and %2$s.</string>
+    <string name="backup_will_replace">Importing will replace the current data: %1$s and %2$s.</string>
+    <string name="backup_imported">Imported %1$s and %2$s.</string>
+    <string name="backup_imported_with_skipped">Imported %1$s and %2$s. %3$s</string>
+
+    <plurals name="appointment_count">
+        <item quantity="one">%d appointment</item>
+        <item quantity="other">%d appointments</item>
+    </plurals>
+    <plurals name="exam_result_count">
+        <item quantity="one">%d exam result</item>
+        <item quantity="other">%d exam results</item>
+    </plurals>
+    <plurals name="invalid_entry_will_be_skipped">
+        <item quantity="one">%d invalid entry will be skipped.</item>
+        <item quantity="other">%d invalid entries will be skipped.</item>
+    </plurals>
+    <plurals name="invalid_entry_skipped">
+        <item quantity="one">%d invalid entry was skipped.</item>
+        <item quantity="other">%d invalid entries were skipped.</item>
+    </plurals>
+
+    <!-- Appointments -->
+    <string name="appointments_today">Today</string>
+    <string name="appointments_add">+ Add appointment</string>
+    <string name="appointments_reminders_off_title">Reminders are off</string>
+    <string name="appointments_reminders_off_message">Allow notifications to get reminders 3 days, 1 day and 1 hour before appointments.</string>
+    <string name="appointments_allow">Allow</string>
+    <string name="appointments_reminders_late_title">Reminders may be late</string>
+    <string name="appointments_reminders_late_message">Android can delay reminders unless exact alarms are allowed for TransCare.</string>
+    <string name="appointments_settings">Settings</string>
+    <string name="appointments_title">Appointments</string>
+    <string name="appointments_empty_month">No appointments scheduled for this month.</string>
+    <string name="appointments_delete_title">Delete appointment?</string>
+    <string name="appointments_delete_message">This will permanently remove the appointment.</string>
+    <string name="appointments_no_place">No place</string>
+    <string name="appointments_new_title">New appointment</string>
+    <string name="appointments_edit_title">Edit appointment</string>
+    <string name="appointments_date">Date</string>
+    <string name="appointments_time">Time</string>
+    <string name="appointments_reminders_note">Reminders: 3 days, 1 day and 1 hour before this appointment.</string>
+    <string name="appointments_doctor">Doctor</string>
+    <string name="appointments_place">Place</string>
+    <string name="appointments_select_time">Select time</string>
+
+    <!-- Exams -->
+    <string name="exams_title">Exams &amp; results</string>
+    <string name="exams_overview">Overview</string>
+    <string name="exams_add">+ Add result</string>
+    <string name="exams_delete_title">Delete result?</string>
+    <string name="exams_delete_message">This will permanently remove this exam result.</string>
+    <string name="exams_reference_disclaimer">Reference ranges are general guides for transfem HRT monitoring, not medical advice. Discuss results with your clinician.</string>
+    <string name="exams_empty_title">Your lab results, in one place</string>
+    <string name="exams_empty_description">Track estradiol, testosterone, LH, FSH, prolactin, SHBG and other values over time.</string>
+    <string name="exams_empty_action">Tap “+ Add result” to record your first exam. Results stay on this device.</string>
+    <string name="exams_all">All</string>
+    <string name="exams_latest">Latest · %1$s</string>
+    <string name="exams_reference">Reference: %1$s</string>
+    <string name="exams_no_results">No results for %1$s yet.</string>
+    <string name="exams_reference_band">Shaded band = reference range</string>
+    <string name="exams_add_for_trend">Add another result to see a trend.</string>
+    <string name="exams_history">History</string>
+    <string name="exams_new_title">New result</string>
+    <string name="exams_edit_title">Edit result</string>
+    <string name="exams_metric">Metric</string>
+    <string name="exams_reference_with_note">Reference: %1$s · %2$s</string>
+    <string name="exams_value">Value</string>
+    <string name="exams_invalid_value">Enter a valid positive number.</string>
+    <string name="exams_note">Note (optional)</string>
+
+    <plurals name="exams_trend_count">
+        <item quantity="one">Trend across %d result</item>
+        <item quantity="other">Trend across %d results</item>
+    </plurals>
+
+    <string name="exam_status_below">Low</string>
+    <string name="exam_status_in_range">In range</string>
+    <string name="exam_status_above">High</string>
+    <string name="exam_status_no_range">No range</string>
+
+    <!-- Exam reference labels -->
+    <string name="exam_reference_under_label">under</string>
+    <string name="exam_reference_over_label">over</string>
+    <string name="exam_reference_lab_specific">lab-specific range</string>
+
+    <!-- Exam metrics -->
+    <string name="exam_metric_estradiol">Estradiol (E2)</string>
+    <string name="exam_metric_estradiol_short">E2</string>
+    <string name="exam_metric_estradiol_note">Feminizing target range, measured at trough.</string>
+    <string name="exam_metric_testosterone_total">Testosterone, total</string>
+    <string name="exam_metric_testosterone_total_short">T</string>
+    <string name="exam_metric_testosterone_total_note">Feminizing target: below 50 ng/dL.</string>
+    <string name="exam_metric_lh">Luteinizing hormone (LH)</string>
+    <string name="exam_metric_lh_short">LH</string>
+    <string name="exam_metric_lh_note">Suppression is expected on feminizing HRT; pre-HRT ranges differ.</string>
+    <string name="exam_metric_fsh">Follicle-stimulating hormone (FSH)</string>
+    <string name="exam_metric_fsh_short">FSH</string>
+    <string name="exam_metric_fsh_note">Suppression is expected on feminizing HRT; pre-HRT ranges differ.</string>
+    <string name="exam_metric_prolactin">Prolactin</string>
+    <string name="exam_metric_prolactin_short">PRL</string>
+    <string name="exam_metric_prolactin_note">Worth monitoring with some antiandrogens.</string>
+    <string name="exam_metric_shbg">Sex hormone-binding globulin (SHBG)</string>
+    <string name="exam_metric_shbg_short">SHBG</string>
+    <string name="exam_metric_shbg_note">Helps interpret hormone levels.</string>
+    <string name="exam_metric_free_testosterone">Testosterone, free</string>
+    <string name="exam_metric_free_testosterone_short">Free T</string>
+    <string name="exam_metric_free_testosterone_note">Optional marker; reference ranges are lab-specific.</string>
+    <string name="exam_metric_dht">Dihydrotestosterone (DHT)</string>
+    <string name="exam_metric_dht_short">DHT</string>
+    <string name="exam_metric_dht_note">Androgen excess marker; reference ranges are lab-specific.</string>
+    <string name="exam_metric_progesterone">Progesterone</string>
+    <string name="exam_metric_progesterone_short">P4</string>
+    <string name="exam_metric_progesterone_note">Range depends on whether and how progesterone is used.</string>
+    <string name="exam_metric_hematocrit">Hematocrit</string>
+    <string name="exam_metric_hematocrit_short">Hct</string>
+    <string name="exam_metric_hematocrit_note">General female reference range.</string>
+    <string name="exam_metric_hemoglobin">Hemoglobin</string>
+    <string name="exam_metric_hemoglobin_short">Hb</string>
+    <string name="exam_metric_hemoglobin_note">General female reference range.</string>
+    <string name="exam_metric_potassium">Potassium</string>
+    <string name="exam_metric_potassium_short">K</string>
+    <string name="exam_metric_potassium_note">Relevant when taking spironolactone.</string>
+    <string name="exam_metric_creatinine">Creatinine</string>
+    <string name="exam_metric_creatinine_short">Cr</string>
+    <string name="exam_metric_creatinine_note">General female reference range.</string>
+    <string name="exam_metric_alt">Alanine aminotransferase (ALT)</string>
+    <string name="exam_metric_alt_short">ALT</string>
+    <string name="exam_metric_alt_note">General female reference range.</string>
+    <string name="exam_metric_ast">Aspartate aminotransferase (AST)</string>
+    <string name="exam_metric_ast_short">AST</string>
+    <string name="exam_metric_ast_note">General female reference range.</string>
+    <string name="exam_metric_vitamin_d">Vitamin D, 25-OH</string>
+    <string name="exam_metric_vitamin_d_short">Vit D</string>
+    <string name="exam_metric_vitamin_d_note">General reference range.</string>
+    <string name="exam_metric_ferritin">Ferritin</string>
+    <string name="exam_metric_ferritin_short">Ferritin</string>
+    <string name="exam_metric_ferritin_note">General female reference range.</string>
+    <string name="exam_metric_hba1c">HbA1c</string>
+    <string name="exam_metric_hba1c_short">HbA1c</string>
+    <string name="exam_metric_hba1c_note">General reference range.</string>
+
+    <!-- Notifications -->
+    <string name="notification_channel_name">Appointment reminders</string>
+    <string name="notification_channel_description">Reminders 3 days, 1 day and 1 hour before appointments</string>
+    <string name="notification_title">Appointment in %1$s</string>
+    <string name="notification_appointment_fallback">Appointment</string>
+    <string name="reminder_three_days">3 days</string>
+    <string name="reminder_one_day">1 day</string>
+    <string name="reminder_one_hour">1 hour</string>
+</resources>

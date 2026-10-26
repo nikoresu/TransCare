@@ -1,0 +1,519 @@
+package org.nikoresu.transcare.ui.profile
+
+import android.Manifest
+import android.annotation.SuppressLint
+import android.content.Context
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.nikoresu.transcare.R
+import org.nikoresu.transcare.data.ProfileImageStore
+import org.nikoresu.transcare.domain.model.Appointment
+import org.nikoresu.transcare.domain.model.ExamResult
+import org.nikoresu.transcare.domain.model.Profile
+import org.nikoresu.transcare.settings.AppLanguage
+import org.nikoresu.transcare.settings.LocalePreferences
+import org.nikoresu.transcare.ui.backup.BackupSection
+
+private data class StatusMessage(
+    val text: String,
+    val isError: Boolean,
+)
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ProfileScreen(
+    viewModel: ProfileViewModel,
+    appointments: List<Appointment>,
+    results: List<ExamResult>,
+    onImport: suspend (List<Appointment>, List<ExamResult>) -> Unit,
+    modifier: Modifier = Modifier,
+    onLanguageChanged: () -> Unit = {},
+) {
+    val profile by viewModel.profile.collectAsStateWithLifecycle()
+    val isLoaded by viewModel.isLoaded.collectAsStateWithLifecycle()
+    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    val resources = LocalResources.current
+
+    var language by remember { mutableStateOf(LocalePreferences.current(context)) }
+    var name by rememberSaveable { mutableStateOf("") }
+    var email by rememberSaveable { mutableStateOf("") }
+    var initialized by rememberSaveable { mutableStateOf(false) }
+    var isSaving by remember { mutableStateOf(false) }
+    var isPhotoBusy by remember { mutableStateOf(false) }
+    var message by remember { mutableStateOf<StatusMessage?>(null) }
+
+    // Fill the fields once, so later profile updates (for example a new photo)
+    // never overwrite text the user is still editing.
+    LaunchedEffect(isLoaded, profile) {
+        if (isLoaded && !initialized) {
+            name = profile.name
+            email = profile.email
+            initialized = true
+        }
+    }
+
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia(),
+    ) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        scope.launch {
+            isPhotoBusy = true
+            message = null
+            val saved = viewModel.setPhoto(name, email, uri)
+            message = if (saved) {
+                StatusMessage(text = resources.getString(R.string.profile_photo_updated), isError = false)
+            } else {
+                StatusMessage(
+                    text = resources.getString(R.string.profile_photo_update_failed),
+                    isError = true,
+                )
+            }
+            isPhotoBusy = false
+        }
+    }
+
+    val mediaPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions(),
+    ) { grants ->
+        if (grants.values.none { it }) {
+            message = StatusMessage(
+                text = resources.getString(R.string.profile_media_permission_denied),
+                isError = true,
+            )
+        }
+        photoPickerLauncher.launch(
+            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
+        )
+    }
+
+    Scaffold(
+        modifier = modifier,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+        topBar = {
+            TopAppBar(title = { Text(text = stringResource(R.string.profile_title)) })
+        },
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .verticalScroll(rememberScrollState())
+                .imePadding()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    ProfileAvatar(profile = profile)
+
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                    ) {
+                        Text(
+                            text = name.ifBlank { stringResource(R.string.profile_default_name) },
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                        )
+                        Text(
+                            text = email.ifBlank { stringResource(R.string.profile_default_email) },
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        OutlinedButton(
+                            onClick = {
+                                if (needsMediaPermission(context)) {
+                                    mediaPermissionLauncher.launch(mediaPermissions())
+                                } else {
+                                    photoPickerLauncher.launch(
+                                        PickVisualMediaRequest(
+                                            ActivityResultContracts.PickVisualMedia.ImageOnly,
+                                        ),
+                                    )
+                                }
+                            },
+                            enabled = isLoaded && !isSaving && !isPhotoBusy,
+                        ) {
+                            if (isPhotoBusy) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(16.dp),
+                                    strokeWidth = 2.dp,
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(text = stringResource(R.string.status_updating))
+                            } else {
+                                Text(
+                                    text = stringResource(
+                                        if (profile.photoFileName == null) {
+                                            R.string.profile_add_photo
+                                        } else {
+                                            R.string.profile_change_photo
+                                        },
+                                    ),
+                                )
+                            }
+                        }
+
+                        if (profile.photoFileName != null) {
+                            TextButton(
+                                onClick = {
+                                    scope.launch {
+                                        isPhotoBusy = true
+                                        message = null
+                                        val saved = viewModel.removePhoto(name, email)
+                                        message = if (saved) {
+                                            StatusMessage(
+                                                text = resources.getString(R.string.profile_photo_removed),
+                                                isError = false,
+                                            )
+                                        } else {
+                                            StatusMessage(
+                                                text = resources.getString(
+                                                    R.string.profile_photo_remove_failed,
+                                                ),
+                                                isError = true,
+                                            )
+                                        }
+                                        isPhotoBusy = false
+                                    }
+                                },
+                                enabled = isLoaded && !isSaving && !isPhotoBusy,
+                            ) {
+                                Text(text = stringResource(R.string.profile_remove_photo))
+                            }
+                        }
+                    }
+                }
+            }
+
+            Text(
+                text = stringResource(R.string.profile_personal_information),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+            )
+
+            OutlinedTextField(
+                value = name,
+                onValueChange = {
+                    name = it
+                    message = null
+                },
+                label = { Text(text = stringResource(R.string.profile_name)) },
+                singleLine = true,
+                enabled = isLoaded,
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            OutlinedTextField(
+                value = email,
+                onValueChange = {
+                    email = it
+                    message = null
+                },
+                label = { Text(text = stringResource(R.string.profile_email)) },
+                singleLine = true,
+                enabled = isLoaded,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            Button(
+                onClick = {
+                    scope.launch {
+                        isSaving = true
+                        message = null
+                        val saved = viewModel.save(name, email)
+                        message = if (saved) {
+                            StatusMessage(
+                                text = resources.getString(R.string.profile_saved),
+                                isError = false,
+                            )
+                        } else {
+                            StatusMessage(
+                                text = resources.getString(R.string.profile_save_failed),
+                                isError = true,
+                            )
+                        }
+                        isSaving = false
+                    }
+                },
+                enabled = isLoaded && !isSaving && !isPhotoBusy,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                if (isSaving) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(text = stringResource(R.string.status_saving))
+                } else {
+                    Text(text = stringResource(R.string.profile_save))
+                }
+            }
+
+            message?.let { current ->
+                ProfileMessage(text = current.text, isError = current.isError)
+            }
+
+            Text(
+                text = stringResource(R.string.profile_storage_note),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
+            LanguageSection(
+                language = language,
+                onLanguageSelected = { selected ->
+                    if (selected != language) {
+                        LocalePreferences.set(context, selected)
+                        language = selected
+                        onLanguageChanged()
+                    }
+                },
+            )
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+
+            BackupSection(
+                appointments = appointments,
+                results = results,
+                onImport = onImport,
+            )
+
+            Spacer(modifier = Modifier.size(24.dp))
+        }
+    }
+}
+
+@Composable
+private fun LanguageSection(
+    language: AppLanguage,
+    onLanguageSelected: (AppLanguage) -> Unit,
+) {
+    Text(
+        text = stringResource(R.string.language_title),
+        style = MaterialTheme.typography.titleMedium,
+        fontWeight = FontWeight.Bold,
+    )
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column {
+            LanguageOption(
+                label = stringResource(R.string.language_system),
+                selected = language == AppLanguage.SYSTEM,
+                onSelect = { onLanguageSelected(AppLanguage.SYSTEM) },
+            )
+            HorizontalDivider()
+            LanguageOption(
+                label = stringResource(R.string.language_english),
+                selected = language == AppLanguage.ENGLISH,
+                onSelect = { onLanguageSelected(AppLanguage.ENGLISH) },
+            )
+            HorizontalDivider()
+            LanguageOption(
+                label = stringResource(R.string.language_spanish_latam),
+                selected = language == AppLanguage.SPANISH_LATIN_AMERICA,
+                onSelect = { onLanguageSelected(AppLanguage.SPANISH_LATIN_AMERICA) },
+            )
+        }
+    }
+    Text(
+        text = stringResource(R.string.language_note),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+}
+
+@Composable
+private fun LanguageOption(
+    label: String,
+    selected: Boolean,
+    onSelect: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onSelect)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        RadioButton(selected = selected, onClick = null)
+        Spacer(modifier = Modifier.width(12.dp))
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyLarge,
+        )
+    }
+}
+
+@Composable
+private fun ProfileAvatar(
+    profile: Profile,
+    modifier: Modifier = Modifier,
+) {
+    val context = LocalContext.current
+    val photoFileName = profile.photoFileName
+    val bitmap by produceState<ImageBitmap?>(initialValue = null, photoFileName) {
+        value = if (photoFileName == null) {
+            null
+        } else {
+            withContext(Dispatchers.IO) {
+                ProfileImageStore.loadBitmap(context, photoFileName)?.asImageBitmap()
+            }
+        }
+    }
+
+    Box(
+        modifier = modifier
+            .size(112.dp)
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.primaryContainer),
+        contentAlignment = Alignment.Center,
+    ) {
+        val image = bitmap
+        if (image != null) {
+            Image(
+                bitmap = image,
+                contentDescription = stringResource(R.string.profile_photo_content_description),
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+            )
+        } else {
+            Text(
+                text = profile.initials,
+                style = MaterialTheme.typography.headlineLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+            )
+        }
+    }
+}
+
+@SuppressLint("InlinedApi")
+private fun needsMediaPermission(context: Context): Boolean = when {
+    Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE ->
+        !hasPermission(context, Manifest.permission.READ_MEDIA_IMAGES) &&
+            !hasPermission(context, Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED)
+
+    Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU ->
+        !hasPermission(context, Manifest.permission.READ_MEDIA_IMAGES)
+
+    else -> false
+}
+
+@SuppressLint("InlinedApi")
+private fun mediaPermissions(): Array<String> =
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+        arrayOf(
+            Manifest.permission.READ_MEDIA_IMAGES,
+            Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED,
+        )
+    } else {
+        arrayOf(Manifest.permission.READ_MEDIA_IMAGES)
+    }
+
+private fun hasPermission(context: Context, permission: String): Boolean =
+    ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
+
+@Composable
+private fun ProfileMessage(
+    text: String,
+    isError: Boolean,
+) {
+    Surface(
+        color = if (isError) {
+            MaterialTheme.colorScheme.errorContainer
+        } else {
+            MaterialTheme.colorScheme.primaryContainer
+        },
+        contentColor = if (isError) {
+            MaterialTheme.colorScheme.onErrorContainer
+        } else {
+            MaterialTheme.colorScheme.onPrimaryContainer
+        },
+        shape = MaterialTheme.shapes.medium,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Text(
+            text = text,
+            modifier = Modifier.padding(12.dp),
+            style = MaterialTheme.typography.bodyMedium,
+        )
+    }
+}
