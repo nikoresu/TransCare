@@ -29,17 +29,21 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.nikoresu.transcare.R
 import org.nikoresu.transcare.notifications.AppointmentReminderScheduler
+import org.nikoresu.transcare.notifications.MedicationReminderScheduler
 import org.nikoresu.transcare.ui.appointments.AppointmentsScreen
 import org.nikoresu.transcare.ui.appointments.AppointmentsViewModel
 import org.nikoresu.transcare.ui.diary.DiaryScreen
 import org.nikoresu.transcare.ui.diary.DiaryViewModel
 import org.nikoresu.transcare.ui.exams.ExamsScreen
 import org.nikoresu.transcare.ui.exams.ExamsViewModel
+import org.nikoresu.transcare.ui.medications.MedicationsScreen
+import org.nikoresu.transcare.ui.medications.MedicationsViewModel
 import org.nikoresu.transcare.ui.profile.ProfileScreen
 import org.nikoresu.transcare.ui.profile.ProfileViewModel
 
 private enum class MainTab(@param:StringRes val labelRes: Int, val icon: String) {
     SCHEDULE(labelRes = R.string.tab_schedule, icon = "🗓"),
+    MEDICATIONS(labelRes = R.string.tab_medications, icon = "💊"),
     EXAMS(labelRes = R.string.tab_exams, icon = "🧪"),
     DIARY(labelRes = R.string.tab_diary, icon = "📔"),
     PROFILE(labelRes = R.string.tab_profile, icon = "👤"),
@@ -50,6 +54,7 @@ fun MainScreen(
     appointmentsViewModel: AppointmentsViewModel,
     examsViewModel: ExamsViewModel,
     diaryViewModel: DiaryViewModel,
+    medicationsViewModel: MedicationsViewModel,
     profileViewModel: ProfileViewModel,
     onLanguageChanged: () -> Unit,
 ) {
@@ -60,6 +65,9 @@ fun MainScreen(
     val appointmentsLoaded by appointmentsViewModel.isLoaded.collectAsStateWithLifecycle()
     val results by examsViewModel.results.collectAsStateWithLifecycle()
     val entries by diaryViewModel.entries.collectAsStateWithLifecycle()
+    val medications by medicationsViewModel.medications.collectAsStateWithLifecycle()
+    val medicationDoses by medicationsViewModel.doses.collectAsStateWithLifecycle()
+    val medicationsLoaded by medicationsViewModel.isLoaded.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
     // Resync whenever the app returns to the foreground: permission changes
@@ -73,6 +81,17 @@ fun MainScreen(
         if (!appointmentsLoaded) return@LaunchedEffect
         withContext(Dispatchers.IO) {
             AppointmentReminderScheduler.sync(context.applicationContext, appointments)
+        }
+    }
+
+    LaunchedEffect(medications, medicationDoses, medicationsLoaded, resyncToken) {
+        if (!medicationsLoaded) return@LaunchedEffect
+        withContext(Dispatchers.IO) {
+            MedicationReminderScheduler.sync(
+                context = context.applicationContext,
+                medications = medications,
+                doses = medicationDoses,
+            )
         }
     }
 
@@ -112,6 +131,12 @@ fun MainScreen(
                     onEditorVisibilityChanged = { editorOpen = it },
                 )
 
+                MainTab.MEDICATIONS -> MedicationsScreen(
+                    viewModel = medicationsViewModel,
+                    modifier = Modifier.fillMaxSize(),
+                    onEditorVisibilityChanged = { editorOpen = it },
+                )
+
                 MainTab.EXAMS -> ExamsScreen(
                     viewModel = examsViewModel,
                     modifier = Modifier.fillMaxSize(),
@@ -129,10 +154,16 @@ fun MainScreen(
                     appointments = appointments,
                     results = results,
                     entries = entries,
-                    onImport = { importedAppointments, importedResults, importedEntries ->
+                    medications = medications,
+                    medicationDoses = medicationDoses,
+                    onImport = { importedAppointments, importedResults, importedEntries, importedMedications, importedMedicationDoses ->
                         appointmentsViewModel.replaceAll(importedAppointments)
                         examsViewModel.replaceAll(importedResults)
                         diaryViewModel.replaceAll(importedEntries)
+                        medicationsViewModel.replaceAll(
+                            importedMedications,
+                            importedMedicationDoses,
+                        )
                     },
                     onLanguageChanged = onLanguageChanged,
                     modifier = Modifier.fillMaxSize(),

@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="app_name">transcare</string>
 
     <!-- Navigation -->
     <string name="tab_schedule">Schedule</string>
+    <string name="tab_medications">Meds</string>
     <string name="tab_exams">Exams</string>
     <string name="tab_diary">Diary</string>
     <string name="tab_profile">Profile</string>
@@ -19,6 +20,7 @@
     <string name="status_saving">Saving…</string>
     <string name="status_importing">Importing…</string>
     <string name="status_updating">Updating…</string>
+    <string name="status_loading">Loading…</string>
 
     <!-- Profile -->
     <string name="profile_title">Profile</string>
@@ -41,6 +43,47 @@
     <string name="profile_storage_note">Your profile stays on this device. The picture is copied into the app\'s private storage, so no photo access permission is needed.</string>
     <string name="profile_photo_content_description">Profile photo</string>
 
+    <!-- Onboarding -->
+    <string name="onboarding_logo">TC</string>
+    <string name="onboarding_welcome_title">TransCare</string>
+    <string name="onboarding_welcome_tagline">Your transition, organized.</string>
+    <string name="onboarding_welcome_description">A private space for your appointments, medications, lab results and notes. Everything stays on this device.</string>
+    <string name="onboarding_get_started">Get started</string>
+    <string name="onboarding_continue">Continue</string>
+    <string name="onboarding_back">Back</string>
+    <string name="onboarding_profile_title">Set up your profile</string>
+    <string name="onboarding_profile_description">Add your details so the app feels like yours. You can change them later in Profile.</string>
+    <string name="onboarding_profile_note">Your information stays on this device.</string>
+    <string name="onboarding_medical_title">Your medical profile</string>
+    <string name="onboarding_medical_description">Choose the hormone therapy you are following. This is optional and you can change it later.</string>
+    <string name="onboarding_features_title">What you can do</string>
+    <string name="onboarding_features_description">A quick look at the tools in TransCare.</string>
+    <string name="onboarding_features_note">Everything stays on this device. You can export a backup from Profile.</string>
+    <string name="onboarding_finish">Start using TransCare</string>
+    <string name="onboarding_save_failed">Could not save your profile. Please try again.</string>
+    <string name="onboarding_feature_schedule_title">Appointments</string>
+    <string name="onboarding_feature_schedule_description">Keep your visits in one calendar and get reminders before each one.</string>
+    <string name="onboarding_feature_medications_title">Medications</string>
+    <string name="onboarding_feature_medications_description">Track HRT and other medications, log doses and see how much supply is left.</string>
+    <string name="onboarding_feature_exams_title">Exams</string>
+    <string name="onboarding_feature_exams_description">Record lab results by hand or import them from a PDF, then follow your trends.</string>
+    <string name="onboarding_feature_diary_title">Diary</string>
+    <string name="onboarding_feature_diary_description">Write notes about symptoms, thoughts and questions for your next visit.</string>
+    <string name="onboarding_feature_profile_title">Profile and backup</string>
+    <string name="onboarding_feature_profile_description">Choose your language and export a backup of your data whenever you need it.</string>
+
+    <!-- Medical profile -->
+    <string name="medical_profile_feminizing">Feminizing HRT</string>
+    <string name="medical_profile_feminizing_description">Estrogen-based therapy</string>
+    <string name="medical_profile_masculinizing">Masculinizing HRT</string>
+    <string name="medical_profile_masculinizing_description">Testosterone-based therapy</string>
+    <string name="medical_profile_coming_soon">Coming soon</string>
+    <string name="medical_profile_none">Not specified</string>
+    <string name="profile_age">Age</string>
+    <string name="profile_age_invalid" tools:ignore="PluralsCandidate">Enter an age between %1$d and %2$d.</string>
+    <string name="profile_medical_title">Medical profile</string>
+    <string name="profile_medical_note">Optional. You can change this at any time.</string>
+
     <!-- Language -->
     <string name="language_title">Language</string>
     <string name="language_system">System default</string>
@@ -50,26 +93,28 @@
 
     <!-- Backup -->
     <string name="backup_title">Backup</string>
-    <string name="backup_description">Save all appointments, exam results and diary entries to a single JSON file in the Downloads folder of this device, or restore a previous backup.</string>
+    <string name="backup_description">Save all appointments, exam results, diary entries and medications to a single JSON file in the Downloads folder of this device, or restore a previous backup.</string>
     <string name="backup_appointments">Appointments</string>
     <string name="backup_exam_results">Exam results</string>
     <string name="backup_diary_entries">Diary entries</string>
+    <string name="backup_medications">Medications</string>
+    <string name="backup_medication_doses">Dose logs</string>
     <string name="backup_file_name">File name</string>
     <string name="backup_saved">Backup saved: Downloads/%1$s</string>
     <string name="backup_save_failed">Could not save the backup. Please try again.</string>
     <string name="backup_save_action">Save backup to Downloads</string>
     <string name="backup_restore_title">Restore from a backup</string>
-    <string name="backup_restore_description">Choose a TransCare backup file. Importing replaces the appointments, exam results and diary entries currently in the app.</string>
+    <string name="backup_restore_description">Choose a TransCare backup file. Importing replaces the appointments, exam results, diary entries and medications currently in the app.</string>
     <string name="backup_import_action">Import backup from file</string>
     <string name="backup_security_note">The backup is plain JSON and is not encrypted. It contains health information, so store and share it carefully.</string>
-    <string name="backup_empty_file">No appointments, exam results or diary entries were found in this file.</string>
+    <string name="backup_empty_file">No appointments, exam results, diary entries or medications were found in this file.</string>
     <string name="backup_read_failed">Could not read this file as a TransCare backup.</string>
     <string name="backup_import_failed">Could not import the backup. Your current data was not changed.</string>
     <string name="backup_replace_title">Replace current data?</string>
-    <string name="backup_contains">This backup contains %1$s, %2$s and %3$s.</string>
-    <string name="backup_will_replace">Importing will replace the current data: %1$s, %2$s and %3$s.</string>
-    <string name="backup_imported">Imported %1$s, %2$s and %3$s.</string>
-    <string name="backup_imported_with_skipped">Imported %1$s, %2$s and %3$s. %4$s</string>
+    <string name="backup_contains">This backup contains %1$s, %2$s, %3$s, %4$s and %5$s.</string>
+    <string name="backup_will_replace">Importing will replace the current data: %1$s, %2$s, %3$s, %4$s and %5$s.</string>
+    <string name="backup_imported">Imported %1$s, %2$s, %3$s, %4$s and %5$s.</string>
+    <string name="backup_imported_with_skipped">Imported %1$s, %2$s, %3$s, %4$s and %5$s. %6$s</string>
 
     <plurals name="appointment_count">
         <item quantity="one">%d appointment</item>
@@ -82,6 +127,14 @@
     <plurals name="diary_entry_count">
         <item quantity="one">%d diary entry</item>
         <item quantity="other">%d diary entries</item>
+    </plurals>
+    <plurals name="medication_count">
+        <item quantity="one">%d medication</item>
+        <item quantity="other">%d medications</item>
+    </plurals>
+    <plurals name="medication_dose_count">
+        <item quantity="one">%d dose log</item>
+        <item quantity="other">%d dose logs</item>
     </plurals>
     <plurals name="invalid_entry_will_be_skipped">
         <item quantity="one">%d invalid entry will be skipped.</item>
@@ -143,6 +196,78 @@
     <string name="appointments_doctor">Doctor</string>
     <string name="appointments_place">Place</string>
     <string name="appointments_select_time">Select time</string>
+
+    <!-- Medications -->
+    <string name="medications_title">Medications</string>
+    <string name="medications_add">+ Add medication</string>
+    <string name="medications_today">Today</string>
+    <string name="medications_today_empty">Nothing scheduled for today.</string>
+    <string name="medications_your">Your medications</string>
+    <string name="medications_history">History</string>
+    <string name="medications_log_dose">Log dose</string>
+    <string name="medications_undo">Undo</string>
+    <string name="medications_empty_title">Track your medications</string>
+    <string name="medications_empty_description">Add your HRT and other medications to log doses and see how much supply you have left.</string>
+    <string name="medications_empty_button">Add your first medication</string>
+    <string name="medications_adherence_title">Last 30 days</string>
+    <string name="medications_adherence_value">Doses taken: %1$d of %2$d (%3$d%%)</string>
+    <string name="medications_adherence_empty">No scheduled doses in this period.</string>
+    <string name="medications_reminders_off_title">Medication reminders are off</string>
+    <string name="medications_reminders_off_message">Allow notifications to get reminders for your scheduled doses.</string>
+
+    <string name="medication_new_title">New medication</string>
+    <string name="medication_edit_title">Edit medication</string>
+    <string name="medication_name">Name</string>
+    <string name="medication_dose">Dose (optional)</string>
+    <string name="medication_dose_placeholder">e.g. 2 mg</string>
+    <string name="medication_route">Route</string>
+    <string name="medication_route_oral">Oral</string>
+    <string name="medication_route_sublingual">Sublingual</string>
+    <string name="medication_route_patch">Patch</string>
+    <string name="medication_route_gel">Gel</string>
+    <string name="medication_route_injection">Injection</string>
+    <string name="medication_route_other">Other</string>
+    <string name="medication_schedule">Schedule</string>
+    <string name="medication_schedule_daily">Once daily</string>
+    <string name="medication_schedule_twice_daily">Twice daily</string>
+    <string name="medication_schedule_weekly">Weekly</string>
+    <string name="medication_schedule_as_needed">As needed</string>
+    <string name="medication_start_date">Start date</string>
+    <string name="medication_reminder">Reminder</string>
+    <string name="medication_reminder_time">Time</string>
+    <string name="medication_reminder_as_needed_note">As-needed medications don\'t get automatic reminders.</string>
+    <string name="medication_reminder_twice_note">Two reminders, 12 hours apart.</string>
+    <string name="medication_reminder_weekly_note">Reminders repeat on the start weekday.</string>
+    <string name="medication_reminder_summary">Reminder at %1$s</string>
+    <string name="medication_reminder_summary_twice">Reminders at %1$s and %2$s</string>
+    <string name="medication_supply">Doses on hand (optional)</string>
+    <string name="medication_supply_helper">Used to estimate how many days are left.</string>
+    <string name="medication_supply_invalid">Enter a whole number.</string>
+    <plurals name="medication_supply_left">
+        <item quantity="one">%d dose left</item>
+        <item quantity="other">%d doses left</item>
+    </plurals>
+    <plurals name="medication_supply_summary">
+        <item quantity="one">%d dose left · about %d days</item>
+        <item quantity="other">%d doses left · about %d days</item>
+    </plurals>
+    <string name="medication_notes">Notes (optional)</string>
+    <string name="medication_storage_note">Medications and dose history stay on this device and are included in backups.</string>
+    <string name="medication_status_taken">Taken</string>
+    <string name="medication_status_skipped">Skipped</string>
+    <string name="medication_skip">Skip</string>
+    <string name="medication_delete_title">Delete medication?</string>
+    <string name="medication_delete_message">This will also delete its dose history.</string>
+    <string name="medication_discard_title">Discard changes?</string>
+    <string name="medication_discard_message">Your changes to this medication will be lost.</string>
+    <string name="medication_discard">Discard</string>
+    <string name="medication_keep_editing">Keep editing</string>
+
+    <string name="medications_history_title">Dose history</string>
+    <string name="medications_history_empty">No doses logged yet.</string>
+    <string name="medications_history_taken_at">Taken at %1$s</string>
+    <string name="medications_history_skipped_at">Skipped at %1$s</string>
+    <string name="medications_history_remove">Remove</string>
 
     <!-- Exams -->
     <string name="exams_title">Exams &amp; results</string>
@@ -279,6 +404,12 @@
     <string name="notification_channel_description">Reminders 3 days, 1 day and 1 hour before appointments</string>
     <string name="notification_title">Appointment in %1$s</string>
     <string name="notification_appointment_fallback">Appointment</string>
+    <string name="medication_notification_channel_name">Medication reminders</string>
+    <string name="medication_notification_channel_description">Reminders for scheduled doses</string>
+    <string name="medication_notification_title">Time for %1$s</string>
+    <string name="medication_notification_fallback">your medication</string>
+    <string name="medication_notification_text">%1$s · %2$s</string>
+    <string name="medication_notification_text_no_dose">Scheduled dose · %1$s</string>
     <string name="reminder_three_days">3 days</string>
     <string name="reminder_one_day">1 day</string>
     <string name="reminder_one_hour">1 hour</string>

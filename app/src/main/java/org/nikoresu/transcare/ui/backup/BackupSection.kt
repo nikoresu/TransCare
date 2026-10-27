@@ -45,6 +45,8 @@ import org.nikoresu.transcare.data.BackupManager
 import org.nikoresu.transcare.domain.model.Appointment
 import org.nikoresu.transcare.domain.model.DiaryEntry
 import org.nikoresu.transcare.domain.model.ExamResult
+import org.nikoresu.transcare.domain.model.Medication
+import org.nikoresu.transcare.domain.model.MedicationDose
 
 private const val TAG = "BackupSection"
 
@@ -66,7 +68,15 @@ fun BackupSection(
     appointments: List<Appointment>,
     results: List<ExamResult>,
     entries: List<DiaryEntry>,
-    onImport: suspend (List<Appointment>, List<ExamResult>, List<DiaryEntry>) -> Unit,
+    medications: List<Medication>,
+    medicationDoses: List<MedicationDose>,
+    onImport: suspend (
+        List<Appointment>,
+        List<ExamResult>,
+        List<DiaryEntry>,
+        List<Medication>,
+        List<MedicationDose>,
+    ) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -90,7 +100,9 @@ fun BackupSection(
                 if (
                     contents.appointments.isEmpty() &&
                     contents.examResults.isEmpty() &&
-                    contents.diaryEntries.isEmpty()
+                    contents.diaryEntries.isEmpty() &&
+                    contents.medications.isEmpty() &&
+                    contents.medicationDoses.isEmpty()
                 ) {
                     importMessage = StatusMessage(
                         text = resources.getString(R.string.backup_empty_file),
@@ -143,6 +155,14 @@ fun BackupSection(
                     value = entries.size.toString(),
                 )
                 BackupRow(
+                    label = stringResource(R.string.backup_medications),
+                    value = medications.size.toString(),
+                )
+                BackupRow(
+                    label = stringResource(R.string.backup_medication_doses),
+                    value = medicationDoses.size.toString(),
+                )
+                BackupRow(
                     label = stringResource(R.string.backup_file_name),
                     value = BackupManager.fileName(),
                 )
@@ -160,6 +180,8 @@ fun BackupSection(
                             appointments = appointments,
                             results = results,
                             entries = entries,
+                            medications = medications,
+                            medicationDoses = medicationDoses,
                         )
                         StatusMessage(
                             text = resources.getString(
@@ -255,6 +277,16 @@ fun BackupSection(
             importData.diaryEntries.size,
             R.plurals.diary_entry_count,
         )
+        val importedMedications = countsLabel(
+            resources,
+            importData.medications.size,
+            R.plurals.medication_count,
+        )
+        val importedMedicationDoses = countsLabel(
+            resources,
+            importData.medicationDoses.size,
+            R.plurals.medication_dose_count,
+        )
         AlertDialog(
             onDismissRequest = { pendingImport = null },
             title = { Text(text = stringResource(R.string.backup_replace_title)) },
@@ -266,6 +298,8 @@ fun BackupSection(
                             importedAppointments,
                             importedResults,
                             importedEntries,
+                            importedMedications,
+                            importedMedicationDoses,
                         ),
                     )
                     Text(
@@ -285,6 +319,16 @@ fun BackupSection(
                                 resources,
                                 entries.size,
                                 R.plurals.diary_entry_count,
+                            ),
+                            countsLabel(
+                                resources,
+                                medications.size,
+                                R.plurals.medication_count,
+                            ),
+                            countsLabel(
+                                resources,
+                                medicationDoses.size,
+                                R.plurals.medication_dose_count,
                             ),
                         ),
                     )
@@ -312,6 +356,8 @@ fun BackupSection(
                                         importData.appointments,
                                         importData.examResults,
                                         importData.diaryEntries,
+                                        importData.medications,
+                                        importData.medicationDoses,
                                     )
                                 }
                                 val skipped = if (importData.skippedEntries > 0) {
@@ -330,6 +376,8 @@ fun BackupSection(
                                             importedAppointments,
                                             importedResults,
                                             importedEntries,
+                                            importedMedications,
+                                            importedMedicationDoses,
                                         )
                                     } else {
                                         resources.getString(
@@ -337,6 +385,8 @@ fun BackupSection(
                                             importedAppointments,
                                             importedResults,
                                             importedEntries,
+                                            importedMedications,
+                                            importedMedicationDoses,
                                             skipped,
                                         )
                                     },

@@ -35,6 +35,10 @@
             android:exported="false" />
 
         <receiver
+            android:name=".notifications.MedicationReminderReceiver"
+            android:exported="false" />
+
+        <receiver
             android:name=".notifications.ReminderRescheduleReceiver"
             android:exported="false">
             <intent-filter>

@@ -4,6 +4,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 import org.nikoresu.transcare.data.ProfileJson
+import org.nikoresu.transcare.domain.model.MedicalProfile
 import org.nikoresu.transcare.domain.model.Profile
 
 class ProfileTest {
@@ -54,8 +55,55 @@ class ProfileTest {
             name = "Ada Lovelace",
             email = "ada@example.com",
             photoFileName = "profile_1_abcd.jpg",
+            age = 36,
+            medicalProfile = MedicalProfile.FEMINIZING_HRT,
         )
         assertEquals(profile, ProfileJson.decode(ProfileJson.encode(profile)))
+    }
+
+    @Test
+    fun normalizedKeepsValidAge() {
+        assertEquals(27, Profile(age = 27).normalized().age)
+        assertEquals(Profile.MIN_AGE, Profile(age = Profile.MIN_AGE).normalized().age)
+        assertEquals(Profile.MAX_AGE, Profile(age = Profile.MAX_AGE).normalized().age)
+    }
+
+    @Test
+    fun normalizedDropsAgeOutsideRange() {
+        assertNull(Profile(age = Profile.MIN_AGE - 1).normalized().age)
+        assertNull(Profile(age = Profile.MAX_AGE + 1).normalized().age)
+    }
+
+    @Test
+    fun normalizedKeepsAvailableMedicalProfile() {
+        assertEquals(
+            MedicalProfile.FEMINIZING_HRT,
+            Profile(medicalProfile = MedicalProfile.FEMINIZING_HRT).normalized().medicalProfile,
+        )
+    }
+
+    @Test
+    fun normalizedDropsUnavailableMedicalProfile() {
+        assertNull(
+            Profile(medicalProfile = MedicalProfile.MASCULINIZING_HRT)
+                .normalized()
+                .medicalProfile,
+        )
+    }
+
+    @Test
+    fun jsonDropsInvalidAge() {
+        assertNull(ProfileJson.decode("""{"age":200}""").age)
+        assertNull(ProfileJson.decode("""{"age":12}""").age)
+        assertNull(ProfileJson.decode("""{"age":"unknown"}""").age)
+    }
+
+    @Test
+    fun jsonIgnoresUnknownMedicalProfile() {
+        assertNull(ProfileJson.decode("""{"medicalProfile":"UNKNOWN"}""").medicalProfile)
+        assertNull(
+            ProfileJson.decode("""{"medicalProfile":"MASCULINIZING_HRT"}""").medicalProfile,
+        )
     }
 
     @Test

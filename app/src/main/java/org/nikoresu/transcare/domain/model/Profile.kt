@@ -10,6 +10,8 @@ data class Profile(
     val name: String = "",
     val email: String = "",
     val photoFileName: String? = null,
+    val age: Int? = null,
+    val medicalProfile: MedicalProfile? = null,
 ) {
     /** One or two letters used when no profile photo has been chosen. */
     val initials: String
@@ -23,14 +25,19 @@ data class Profile(
             }
         }
 
-    /** Trims user input and drops an unsafe or missing photo reference. */
+    /** Trims user input and drops invalid or unsupported values. */
     fun normalized(): Profile = copy(
         name = name.trim(),
         email = email.trim(),
         photoFileName = photoFileName?.takeIf { isValidPhotoFileName(it) },
+        age = age?.takeIf { it in MIN_AGE..MAX_AGE },
+        medicalProfile = medicalProfile?.takeIf { it.isAvailable },
     )
 
     companion object {
+        const val MIN_AGE = 13
+        const val MAX_AGE = 120
+
         private val WHITESPACE = Regex("\\s+")
 
         /** Only plain file names are accepted so a profile can never point outside its folder. */
@@ -38,5 +45,8 @@ data class Profile(
 
         fun isValidPhotoFileName(fileName: String?): Boolean =
             fileName != null && PHOTO_FILE_NAME.matches(fileName)
+
+        /** A null age means the user did not provide one, which is allowed. */
+        fun isValidAge(age: Int?): Boolean = age == null || age in MIN_AGE..MAX_AGE
     }
 }

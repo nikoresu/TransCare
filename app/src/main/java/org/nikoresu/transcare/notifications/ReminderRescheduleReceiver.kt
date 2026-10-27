@@ -8,6 +8,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.nikoresu.transcare.data.AppointmentRepository
+import org.nikoresu.transcare.data.MedicationRepository
 
 /**
  * Restores appointment reminder alarms after a reboot, app update, or clock
@@ -25,8 +26,13 @@ class ReminderRescheduleReceiver : BroadcastReceiver() {
             try {
                 val appointments = AppointmentRepository.readAppointments(appContext)
                 AppointmentReminderScheduler.sync(appContext, appointments)
+                MedicationReminderScheduler.sync(
+                    context = appContext,
+                    medications = MedicationRepository.readMedications(appContext),
+                    doses = MedicationRepository.readDoses(appContext),
+                )
             } catch (exception: Exception) {
-                Log.e(TAG, "Could not reschedule appointment reminders", exception)
+                Log.e(TAG, "Could not reschedule reminders", exception)
             } finally {
                 pendingResult.finish()
             }

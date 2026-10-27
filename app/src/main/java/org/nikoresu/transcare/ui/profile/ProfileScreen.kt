@@ -1,18 +1,10 @@
 package org.nikoresu.transcare.ui.profile
 
-import android.Manifest
-import android.annotation.SuppressLint
-import android.content.Context
-import android.content.pm.PackageManager
-import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -24,7 +16,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -45,33 +36,27 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import org.nikoresu.transcare.R
-import org.nikoresu.transcare.data.ProfileImageStore
 import org.nikoresu.transcare.domain.model.Appointment
 import org.nikoresu.transcare.domain.model.DiaryEntry
 import org.nikoresu.transcare.domain.model.ExamResult
+import org.nikoresu.transcare.domain.model.MedicalProfile
+import org.nikoresu.transcare.domain.model.Medication
+import org.nikoresu.transcare.domain.model.MedicationDose
 import org.nikoresu.transcare.domain.model.Profile
 import org.nikoresu.transcare.settings.AppLanguage
 import org.nikoresu.transcare.settings.LocalePreferences
@@ -89,7 +74,15 @@ fun ProfileScreen(
     appointments: List<Appointment>,
     results: List<ExamResult>,
     entries: List<DiaryEntry>,
-    onImport: suspend (List<Appointment>, List<ExamResult>, List<DiaryEntry>) -> Unit,
+    medications: List<Medication>,
+    medicationDoses: List<MedicationDose>,
+    onImport: suspend (
+        List<Appointment>,
+        List<ExamResult>,
+        List<DiaryEntry>,
+        List<Medication>,
+        List<MedicationDose>,
+    ) -> Unit,
     modifier: Modifier = Modifier,
     onLanguageChanged: () -> Unit = {},
 ) {
@@ -102,10 +95,25 @@ fun ProfileScreen(
     var language by remember { mutableStateOf(LocalePreferences.current(context)) }
     var name by rememberSaveable { mutableStateOf("") }
     var email by rememberSaveable { mutableStateOf("") }
+    var ageText by rememberSaveable { mutableStateOf("") }
+    var medicalProfile by rememberSaveable { mutableStateOf<MedicalProfile?>(null) }
+    var photoFileName by rememberSaveable { mutableStateOf<String?>(null) }
     var initialized by rememberSaveable { mutableStateOf(false) }
     var isSaving by remember { mutableStateOf(false) }
     var isPhotoBusy by remember { mutableStateOf(false) }
     var message by remember { mutableStateOf<StatusMessage?>(null) }
+
+    val parsedAge = ageText.trim().toIntOrNull()
+    val ageError = ageText.isNotBlank() &&
+        (parsedAge == null || !Profile.isValidAge(parsedAge))
+
+    fun draft(): Profile = Profile(
+        name = name,
+        email = email,
+        photoFileName = photoFileName,
+        age = ageText.trim().toIntOrNull()?.takeIf { Profile.isValidAge(it) },
+        medicalProfile = medicalProfile,
+    )
 
     // Fill the fields once, so later profile updates (for example a new photo)
     // never overwrite text the user is still editing.
@@ -113,6 +121,9 @@ fun ProfileScreen(
         if (isLoaded && !initialized) {
             name = profile.name
             email = profile.email
+            ageText = profile.age?.toString().orEmpty()
+            medicalProfile = profile.medicalProfile
+            photoFileName = profile.photoFileName
             initialized = true
         }
     }
@@ -121,11 +132,13 @@ fun ProfileScreen(
         contract = ActivityResultContracts.PickVisualMedia(),
     ) { uri ->
         if (uri == null) return@rememberLauncherForActivityResult
+        val currentDraft = draft()
         scope.launch {
             isPhotoBusy = true
             message = null
-            val saved = viewModel.setPhoto(name, email, uri)
-            message = if (saved) {
+            val saved = viewModel.setPhoto(currentDraft, uri)
+            message = if (saved != null) {
+                photoFileName = saved.photoFileName
                 StatusMessage(text = resources.getString(R.string.profile_photo_updated), isError = false)
             } else {
                 StatusMessage(
@@ -175,7 +188,13 @@ fun ProfileScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    ProfileAvatar(profile = profile)
+                    ProfileAvatar(
+                        profile = profile.copy(
+                            name = name,
+                            email = email,
+                            photoFileName = photoFileName,
+                        ),
+                    )
 
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
@@ -209,7 +228,7 @@ fun ProfileScreen(
                                     )
                                 }
                             },
-                            enabled = isLoaded && !isSaving && !isPhotoBusy,
+                            enabled = isLoaded && !isSaving && !isPhotoBusy && !ageError,
                         ) {
                             if (isPhotoBusy) {
                                 CircularProgressIndicator(
@@ -221,7 +240,7 @@ fun ProfileScreen(
                             } else {
                                 Text(
                                     text = stringResource(
-                                        if (profile.photoFileName == null) {
+                                        if (photoFileName == null) {
                                             R.string.profile_add_photo
                                         } else {
                                             R.string.profile_change_photo
@@ -231,14 +250,16 @@ fun ProfileScreen(
                             }
                         }
 
-                        if (profile.photoFileName != null) {
+                        if (photoFileName != null) {
                             TextButton(
                                 onClick = {
+                                    val currentDraft = draft()
                                     scope.launch {
                                         isPhotoBusy = true
                                         message = null
-                                        val saved = viewModel.removePhoto(name, email)
-                                        message = if (saved) {
+                                        val saved = viewModel.removePhoto(currentDraft)
+                                        message = if (saved != null) {
+                                            photoFileName = null
                                             StatusMessage(
                                                 text = resources.getString(R.string.profile_photo_removed),
                                                 isError = false,
@@ -254,7 +275,7 @@ fun ProfileScreen(
                                         isPhotoBusy = false
                                     }
                                 },
-                                enabled = isLoaded && !isSaving && !isPhotoBusy,
+                                enabled = isLoaded && !isSaving && !isPhotoBusy && !ageError,
                             ) {
                                 Text(text = stringResource(R.string.profile_remove_photo))
                             }
@@ -294,12 +315,61 @@ fun ProfileScreen(
                 modifier = Modifier.fillMaxWidth(),
             )
 
+            OutlinedTextField(
+                value = ageText,
+                onValueChange = { value ->
+                    ageText = value.filter { it.isDigit() }.take(3)
+                    message = null
+                },
+                label = { Text(text = stringResource(R.string.profile_age)) },
+                singleLine = true,
+                enabled = isLoaded,
+                isError = ageError,
+                supportingText = if (ageError) {
+                    {
+                        Text(
+                            text = stringResource(
+                                R.string.profile_age_invalid,
+                                Profile.MIN_AGE,
+                                Profile.MAX_AGE,
+                            ),
+                        )
+                    }
+                } else {
+                    null
+                },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            Text(
+                text = stringResource(R.string.profile_medical_title),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+            )
+
+            MedicalProfileOptions(
+                selected = medicalProfile,
+                onSelect = {
+                    medicalProfile = it
+                    message = null
+                },
+                enabled = isLoaded,
+            )
+
+            Text(
+                text = stringResource(R.string.profile_medical_note),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
             Button(
                 onClick = {
+                    val currentDraft = draft()
                     scope.launch {
                         isSaving = true
                         message = null
-                        val saved = viewModel.save(name, email)
+                        val saved = viewModel.save(currentDraft)
                         message = if (saved) {
                             StatusMessage(
                                 text = resources.getString(R.string.profile_saved),
@@ -314,7 +384,7 @@ fun ProfileScreen(
                         isSaving = false
                     }
                 },
-                enabled = isLoaded && !isSaving && !isPhotoBusy,
+                enabled = isLoaded && !isSaving && !isPhotoBusy && !ageError,
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 if (isSaving) {
@@ -357,6 +427,8 @@ fun ProfileScreen(
                 appointments = appointments,
                 results = results,
                 entries = entries,
+                medications = medications,
+                medicationDoses = medicationDoses,
                 onImport = onImport,
             )
 
@@ -424,75 +496,6 @@ private fun LanguageOption(
         )
     }
 }
-
-@Composable
-private fun ProfileAvatar(
-    profile: Profile,
-    modifier: Modifier = Modifier,
-) {
-    val context = LocalContext.current
-    val photoFileName = profile.photoFileName
-    val bitmap by produceState<ImageBitmap?>(initialValue = null, photoFileName) {
-        value = if (photoFileName == null) {
-            null
-        } else {
-            withContext(Dispatchers.IO) {
-                ProfileImageStore.loadBitmap(context, photoFileName)?.asImageBitmap()
-            }
-        }
-    }
-
-    Box(
-        modifier = modifier
-            .size(112.dp)
-            .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.primaryContainer),
-        contentAlignment = Alignment.Center,
-    ) {
-        val image = bitmap
-        if (image != null) {
-            Image(
-                bitmap = image,
-                contentDescription = stringResource(R.string.profile_photo_content_description),
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize(),
-            )
-        } else {
-            Text(
-                text = profile.initials,
-                style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
-            )
-        }
-    }
-}
-
-@SuppressLint("InlinedApi")
-private fun needsMediaPermission(context: Context): Boolean = when {
-    Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE ->
-        !hasPermission(context, Manifest.permission.READ_MEDIA_IMAGES) &&
-            !hasPermission(context, Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED)
-
-    Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU ->
-        !hasPermission(context, Manifest.permission.READ_MEDIA_IMAGES)
-
-    else -> false
-}
-
-@SuppressLint("InlinedApi")
-private fun mediaPermissions(): Array<String> =
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-        arrayOf(
-            Manifest.permission.READ_MEDIA_IMAGES,
-            Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED,
-        )
-    } else {
-        arrayOf(Manifest.permission.READ_MEDIA_IMAGES)
-    }
-
-private fun hasPermission(context: Context, permission: String): Boolean =
-    ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
 
 @Composable
 private fun ProfileMessage(

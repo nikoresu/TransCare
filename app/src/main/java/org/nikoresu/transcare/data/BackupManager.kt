@@ -21,12 +21,16 @@ import org.nikoresu.transcare.domain.model.DiaryEntry
 import org.nikoresu.transcare.domain.model.DiaryEntryType
 import org.nikoresu.transcare.domain.model.ExamMetric
 import org.nikoresu.transcare.domain.model.ExamResult
+import org.nikoresu.transcare.domain.model.Medication
+import org.nikoresu.transcare.domain.model.MedicationDose
 
 /** Data read from a backup file, ready to replace the current local data. */
 data class BackupContents(
     val appointments: List<Appointment>,
     val examResults: List<ExamResult>,
     val diaryEntries: List<DiaryEntry>,
+    val medications: List<Medication>,
+    val medicationDoses: List<MedicationDose>,
     val skippedEntries: Int,
 )
 
@@ -52,6 +56,8 @@ object BackupManager {
         appointments: List<Appointment>,
         results: List<ExamResult>,
         diaryEntries: List<DiaryEntry>,
+        medications: List<Medication> = emptyList(),
+        medicationDoses: List<MedicationDose> = emptyList(),
         exportedAt: Instant = Instant.now(),
     ): String {
         val appointmentArray = JSONArray()
@@ -63,13 +69,21 @@ object BackupManager {
         val diaryArray = JSONArray()
         diaryEntries.forEach { diaryArray.put(it.toJsonObject()) }
 
+        val medicationArray = JSONArray()
+        medications.forEach { medicationArray.put(it.toJsonObject()) }
+
+        val medicationDoseArray = JSONArray()
+        medicationDoses.forEach { medicationDoseArray.put(it.toJsonObject()) }
+
         return JSONObject()
             .put("app", "TransCare")
-            .put("schemaVersion", 3)
+            .put("schemaVersion", 4)
             .put("exportedAt", exportedAt.toString())
             .put("appointments", appointmentArray)
             .put("examResults", resultArray)
             .put("diaryEntries", diaryArray)
+            .put("medications", medicationArray)
+            .put("medicationDoses", medicationDoseArray)
             .toString(2)
     }
 
@@ -94,17 +108,36 @@ object BackupManager {
                     ?: root.optJSONArray("exam_results")
                 val diaryArray = root.optJSONArray("diaryEntries")
                     ?: root.optJSONArray("diary_entries")
-                if (appointmentArray == null && resultArray == null && diaryArray == null) {
+                val medicationArray = root.optJSONArray("medications")
+                val medicationDoseArray = root.optJSONArray("medicationDoses")
+                    ?: root.optJSONArray("medication_doses")
+                if (
+                    appointmentArray == null &&
+                    resultArray == null &&
+                    diaryArray == null &&
+                    medicationArray == null &&
+                    medicationDoseArray == null
+                ) {
                     throw IllegalArgumentException("Not a TransCare backup")
                 }
                 val (appointments, skippedAppointments) = parseAppointments(appointmentArray)
                 val (results, skippedResults) = parseExamResults(resultArray)
                 val (diaryEntries, skippedDiaryEntries) = parseDiaryEntries(diaryArray)
+                val (medications, skippedMedications) = parseMedications(medicationArray)
+                val medicationIds = medications.map { it.id }.toSet()
+                val (medicationDoses, skippedMedicationDoses) =
+                    parseMedicationDoses(medicationDoseArray, medicationIds)
                 BackupContents(
                     appointments = appointments,
                     examResults = results,
                     diaryEntries = diaryEntries,
-                    skippedEntries = skippedAppointments + skippedResults + skippedDiaryEntries,
+                    medications = medications,
+                    medicationDoses = medicationDoses,
+                    skippedEntries = skippedAppointments +
+                        skippedResults +
+                        skippedDiaryEntries +
+                        skippedMedications +
+                        skippedMedicationDoses,
                 )
             }
 
@@ -122,6 +155,8 @@ object BackupManager {
                 appointments = emptyList(),
                 examResults = results,
                 diaryEntries = emptyList(),
+                medications = emptyList(),
+                medicationDoses = emptyList(),
                 skippedEntries = skipped,
             )
         } else {
@@ -130,6 +165,8 @@ object BackupManager {
                 appointments = appointments,
                 examResults = emptyList(),
                 diaryEntries = emptyList(),
+                medications = emptyList(),
+                medicationDoses = emptyList(),
                 skippedEntries = skipped,
             )
         }
@@ -223,6 +260,52 @@ object BackupManager {
         return entries to skipped
     }
 
+    private fun parseMedications(array: JSONArray?): Pair<List<Medication>, Int> {
+        if (array == null) return emptyList<Medication>() to 0
+        val medications = mutableListOf<Medication>()
+        var skipped = 0
+        for (index in 0 until array.length()) {
+            val json = array.optJSONObject(index)
+            if (json == null) {
+                skipped++
+                continue
+            }
+            val medication = MedicationRepository.parseMedication(json)
+            if (medication == null) {
+                skipped++
+                continue
+            }
+            medications += medication.copy(
+                id = medication.id.takeIf { it > 0L } ?: (index + 1L),
+            )
+        }
+        return medications to skipped
+    }
+
+    private fun parseMedicationDoses(
+        array: JSONArray?,
+        medicationIds: Set<Long>,
+    ): Pair<List<MedicationDose>, Int> {
+        if (array == null) return emptyList<MedicationDose>() to 0
+        val doses = mutableListOf<MedicationDose>()
+        var skipped = 0
+        for (index in 0 until array.length()) {
+            val json = array.optJSONObject(index)
+            if (json == null) {
+                skipped++
+                continue
+            }
+            val dose = MedicationRepository.parseDose(json)
+            if (dose == null || dose.medicationId !in medicationIds) {
+                skipped++
+                continue
+            }
+            doses += dose
+        }
+        return doses
+            .distinctBy { Triple(it.medicationId, it.dayStartMillis, it.doseIndex) } to skipped
+    }
+
     private fun isValidDay(epochMillis: Long): Boolean =
         epochMillis in 1L..MAX_DAY_START_MILLIS
 
@@ -252,8 +335,16 @@ object BackupManager {
         appointments: List<Appointment>,
         results: List<ExamResult>,
         entries: List<DiaryEntry>,
+        medications: List<Medication>,
+        medicationDoses: List<MedicationDose>,
     ): BackupFile = withContext(Dispatchers.IO + NonCancellable) {
-        val json = buildBackupJson(appointments, results, entries)
+        val json = buildBackupJson(
+            appointments = appointments,
+            results = results,
+            diaryEntries = entries,
+            medications = medications,
+            medicationDoses = medicationDoses,
+        )
         val resolver = context.contentResolver
         val requestedName = fileName()
 
