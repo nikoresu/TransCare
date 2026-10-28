@@ -35,6 +35,10 @@
     <string name="profile_photo_removed">Foto de perfil eliminada.</string>
     <string name="profile_photo_remove_failed">No se pudo quitar la foto de perfil.</string>
     <string name="profile_personal_information">Información personal</string>
+    <string name="profile_personal_summary">Nombre, edad, foto y perfil médico</string>
+    <string name="profile_settings_title">Ajustes</string>
+    <string name="profile_settings_summary">Idioma y seguridad de la app</string>
+    <string name="profile_backup_summary">Guardar o restaurar tus datos</string>
     <string name="profile_name">Nombre</string>
     <string name="profile_email">Correo electrónico</string>
     <string name="profile_saved">Perfil guardado.</string>

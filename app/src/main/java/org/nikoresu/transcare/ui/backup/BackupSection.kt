@@ -70,7 +70,7 @@ private data class StatusMessage(
     val isError: Boolean,
 )
 
-/** Backup and restore controls, embedded at the bottom of the Profile tab. */
+/** Backup and restore controls. */
 @Composable
 fun BackupSection(
     appointments: List<Appointment>,
@@ -86,6 +86,7 @@ fun BackupSection(
         List<MedicationDose>,
     ) -> Unit,
     modifier: Modifier = Modifier,
+    showTitle: Boolean = true,
 ) {
     val context = LocalContext.current
     val resources = LocalResources.current
@@ -259,11 +260,13 @@ fun BackupSection(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Text(
-            text = stringResource(R.string.backup_title),
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
-        )
+        if (showTitle) {
+            Text(
+                text = stringResource(R.string.backup_title),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+            )
+        }
         Text(
             text = stringResource(R.string.backup_description),
             style = MaterialTheme.typography.bodyLarge,

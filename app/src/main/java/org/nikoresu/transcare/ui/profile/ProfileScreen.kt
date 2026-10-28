@@ -68,7 +68,14 @@ private data class StatusMessage(
     val isError: Boolean,
 )
 
-@OptIn(ExperimentalMaterial3Api::class)
+/** The Profile tab is a small hub; each section opens on its own page. */
+private enum class ProfileDestination {
+    HOME,
+    PERSONAL,
+    SETTINGS,
+    BACKUP,
+}
+
 @Composable
 fun ProfileScreen(
     viewModel: ProfileViewModel,
@@ -88,13 +95,180 @@ fun ProfileScreen(
     onLanguageChanged: () -> Unit = {},
     onLockEnabledChanged: (Boolean) -> Unit = {},
 ) {
+    var destination by rememberSaveable { mutableStateOf(ProfileDestination.HOME) }
+
+    when (destination) {
+        ProfileDestination.HOME -> ProfileHome(
+            viewModel = viewModel,
+            onOpenPersonal = { destination = ProfileDestination.PERSONAL },
+            onOpenSettings = { destination = ProfileDestination.SETTINGS },
+            onOpenBackup = { destination = ProfileDestination.BACKUP },
+            modifier = modifier,
+        )
+
+        ProfileDestination.PERSONAL -> PersonalInformationScreen(
+            viewModel = viewModel,
+            onBack = { destination = ProfileDestination.HOME },
+            modifier = modifier,
+        )
+
+        ProfileDestination.SETTINGS -> SettingsScreen(
+            onBack = { destination = ProfileDestination.HOME },
+            onLanguageChanged = onLanguageChanged,
+            onLockEnabledChanged = onLockEnabledChanged,
+            modifier = modifier,
+        )
+
+        ProfileDestination.BACKUP -> BackupScreen(
+            appointments = appointments,
+            results = results,
+            entries = entries,
+            medications = medications,
+            medicationDoses = medicationDoses,
+            onImport = onImport,
+            onBack = { destination = ProfileDestination.HOME },
+            modifier = modifier,
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ProfileHome(
+    viewModel: ProfileViewModel,
+    onOpenPersonal: () -> Unit,
+    onOpenSettings: () -> Unit,
+    onOpenBackup: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val profile by viewModel.profile.collectAsStateWithLifecycle()
+
+    Scaffold(
+        modifier = modifier,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+        topBar = {
+            TopAppBar(title = { Text(text = stringResource(R.string.profile_title)) })
+        },
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    ProfileAvatar(profile = profile, size = 72.dp)
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                    ) {
+                        Text(
+                            text = profile.name.ifBlank {
+                                stringResource(R.string.profile_default_name)
+                            },
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                        )
+                        Text(
+                            text = profile.email.ifBlank {
+                                stringResource(R.string.profile_default_email)
+                            },
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+
+            ProfileMenuRow(
+                icon = "👤",
+                title = stringResource(R.string.profile_personal_information),
+                summary = stringResource(R.string.profile_personal_summary),
+                onClick = onOpenPersonal,
+            )
+            ProfileMenuRow(
+                icon = "⚙️",
+                title = stringResource(R.string.profile_settings_title),
+                summary = stringResource(R.string.profile_settings_summary),
+                onClick = onOpenSettings,
+            )
+            ProfileMenuRow(
+                icon = "💾",
+                title = stringResource(R.string.backup_title),
+                summary = stringResource(R.string.profile_backup_summary),
+                onClick = onOpenBackup,
+            )
+
+            Spacer(modifier = Modifier.size(24.dp))
+        }
+    }
+}
+
+@Composable
+private fun ProfileMenuRow(
+    icon: String,
+    title: String,
+    summary: String,
+    onClick: () -> Unit,
+) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onClick)
+                .padding(horizontal = 20.dp, vertical = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Text(
+                text = icon,
+                style = MaterialTheme.typography.titleLarge,
+            )
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    text = summary,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Text(
+                text = "›",
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun PersonalInformationScreen(
+    viewModel: ProfileViewModel,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val profile by viewModel.profile.collectAsStateWithLifecycle()
     val isLoaded by viewModel.isLoaded.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val resources = LocalResources.current
 
-    var language by remember { mutableStateOf(LocalePreferences.current(context)) }
     var name by rememberSaveable { mutableStateOf("") }
     var email by rememberSaveable { mutableStateOf("") }
     var ageText by rememberSaveable { mutableStateOf("") }
@@ -170,7 +344,10 @@ fun ProfileScreen(
         modifier = modifier,
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
-            TopAppBar(title = { Text(text = stringResource(R.string.profile_title)) })
+            TopAppBar(
+                title = { Text(text = stringResource(R.string.profile_personal_information)) },
+                navigationIcon = { BackButton(onClick = onBack) },
+            )
         },
     ) { innerPadding ->
         Column(
@@ -412,6 +589,40 @@ fun ProfileScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
+            Spacer(modifier = Modifier.size(24.dp))
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SettingsScreen(
+    onBack: () -> Unit,
+    onLanguageChanged: () -> Unit,
+    onLockEnabledChanged: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val context = LocalContext.current
+    var language by remember { mutableStateOf(LocalePreferences.current(context)) }
+
+    Scaffold(
+        modifier = modifier,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+        topBar = {
+            TopAppBar(
+                title = { Text(text = stringResource(R.string.profile_settings_title)) },
+                navigationIcon = { BackButton(onClick = onBack) },
+            )
+        },
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
             LanguageSection(
                 language = language,
                 onLanguageSelected = { selected ->
@@ -427,8 +638,46 @@ fun ProfileScreen(
 
             SecuritySection(onLockEnabledChanged = onLockEnabledChanged)
 
-            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+            Spacer(modifier = Modifier.size(24.dp))
+        }
+    }
+}
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun BackupScreen(
+    appointments: List<Appointment>,
+    results: List<ExamResult>,
+    entries: List<DiaryEntry>,
+    medications: List<Medication>,
+    medicationDoses: List<MedicationDose>,
+    onImport: suspend (
+        List<Appointment>,
+        List<ExamResult>,
+        List<DiaryEntry>,
+        List<Medication>,
+        List<MedicationDose>,
+    ) -> Unit,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Scaffold(
+        modifier = modifier,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+        topBar = {
+            TopAppBar(
+                title = { Text(text = stringResource(R.string.backup_title)) },
+                navigationIcon = { BackButton(onClick = onBack) },
+            )
+        },
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+        ) {
             BackupSection(
                 appointments = appointments,
                 results = results,
@@ -436,10 +685,18 @@ fun ProfileScreen(
                 medications = medications,
                 medicationDoses = medicationDoses,
                 onImport = onImport,
+                showTitle = false,
             )
 
             Spacer(modifier = Modifier.size(24.dp))
         }
+    }
+}
+
+@Composable
+private fun BackButton(onClick: () -> Unit) {
+    TextButton(onClick = onClick) {
+        Text(text = stringResource(R.string.action_back))
     }
 }
 
