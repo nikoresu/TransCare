@@ -67,6 +67,7 @@ class BackupTest {
         val appointment = Appointment(
             doctorName = "Dr. Rivera",
             place = "Clinic",
+            notes = "Ask about the new dosage.",
             dayStartMillis = dayStartMillis,
             hour = 9,
             minute = 30,
@@ -90,11 +91,52 @@ class BackupTest {
         assertEquals(1, contents.examResults.size)
         assertEquals(1, contents.diaryEntries.size)
         assertEquals(0, contents.skippedEntries)
+        assertEquals(appointment, contents.appointments.single())
         val restored = contents.diaryEntries.single()
         assertEquals(entry.dayStartMillis, restored.dayStartMillis)
         assertEquals(entry.title, restored.title)
         assertEquals(entry.text, restored.text)
         assertEquals(DiaryEntryType.THOUGHTS, restored.type)
+    }
+
+    @Test
+    fun parseBackupJson_restoresAppointmentNotes() {
+        val appointment = Appointment(
+            doctorName = "Dr. Rivera",
+            place = "Clinic",
+            notes = "Ask about estrogen dosage.\nBring the last lab report.",
+            dayStartMillis = dayStartMillis,
+            hour = 9,
+            minute = 30,
+        )
+        val json = BackupManager.buildBackupJson(
+            appointments = listOf(appointment),
+            results = emptyList(),
+            diaryEntries = emptyList(),
+        )
+
+        val contents = BackupManager.parseBackupJson(json)
+
+        assertEquals(appointment.notes, contents.appointments.single().notes)
+    }
+
+    @Test
+    fun parseBackupJson_defaultsMissingAppointmentNotesToEmpty() {
+        val root = JSONObject().put(
+            "appointments",
+            JSONArray().put(
+                JSONObject()
+                    .put("doctorName", "Dr. Rivera")
+                    .put("place", "Clinic")
+                    .put("dayStartMillis", dayStartMillis)
+                    .put("hour", 9)
+                    .put("minute", 30),
+            ),
+        )
+
+        val contents = BackupManager.parseBackupJson(root.toString())
+
+        assertEquals("", contents.appointments.single().notes)
     }
 
     @Test

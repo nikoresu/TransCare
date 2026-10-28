@@ -255,6 +255,8 @@
     <string name="appointments_reminders_note">Reminders: 3 days, 1 day and 1 hour before this appointment.</string>
     <string name="appointments_doctor">Doctor</string>
     <string name="appointments_place">Place</string>
+    <string name="appointments_notes">Notes</string>
+    <string name="appointments_notes_hint">Questions to ask or things to bring.</string>
     <string name="appointments_select_time">Select time</string>
 
     <!-- Medications -->

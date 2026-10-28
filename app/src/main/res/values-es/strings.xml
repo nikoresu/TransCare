@@ -262,6 +262,8 @@
     <string name="appointments_reminders_note">Recordatorios: 3 días, 1 día y 1 hora antes de esta cita.</string>
     <string name="appointments_doctor">Médico</string>
     <string name="appointments_place">Lugar</string>
+    <string name="appointments_notes">Notas</string>
+    <string name="appointments_notes_hint">Preguntas que hacer o cosas que llevar.</string>
     <string name="appointments_select_time">Seleccionar hora</string>
 
     <!-- Medications -->

@@ -79,6 +79,7 @@ fun AppointmentEditorScreen(
 
     var doctorName by rememberSaveable { mutableStateOf(initialAppointment?.doctorName.orEmpty()) }
     var place by rememberSaveable { mutableStateOf(initialAppointment?.place.orEmpty()) }
+    var notes by rememberSaveable { mutableStateOf(initialAppointment?.notes.orEmpty()) }
 
     BackHandler(onBack = onDismiss)
 
@@ -156,6 +157,17 @@ fun AppointmentEditorScreen(
                 modifier = Modifier.fillMaxWidth(),
             )
 
+            OutlinedTextField(
+                value = notes,
+                onValueChange = { notes = it },
+                label = { Text(text = stringResource(R.string.appointments_notes)) },
+                supportingText = {
+                    Text(text = stringResource(R.string.appointments_notes_hint))
+                },
+                minLines = 3,
+                modifier = Modifier.fillMaxWidth(),
+            )
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -171,6 +183,7 @@ fun AppointmentEditorScreen(
                                 id = initialAppointment?.id ?: 0L,
                                 doctorName = doctorName.trim(),
                                 place = place.trim(),
+                                notes = notes.trim(),
                                 dayStartMillis = Appointment.dayStartMillisOf(selectedDate),
                                 hour = hour,
                                 minute = minute,

@@ -95,6 +95,7 @@ class AppointmentRepository(context: Context) {
         private const val KEY_ID = "id"
         private const val KEY_DOCTOR_NAME = "doctorName"
         private const val KEY_PLACE = "place"
+        private const val KEY_NOTES = "notes"
         private const val KEY_DAY_START_MILLIS = "dayStartMillis"
         private const val KEY_HOUR = "hour"
         private const val KEY_MINUTE = "minute"
@@ -118,6 +119,7 @@ class AppointmentRepository(context: Context) {
                                 id = json.optLong(KEY_ID),
                                 doctorName = json.optString(KEY_DOCTOR_NAME),
                                 place = json.optString(KEY_PLACE),
+                                notes = json.optString(KEY_NOTES),
                                 dayStartMillis = json.optLong(KEY_DAY_START_MILLIS),
                                 hour = json.optInt(KEY_HOUR),
                                 minute = json.optInt(KEY_MINUTE),

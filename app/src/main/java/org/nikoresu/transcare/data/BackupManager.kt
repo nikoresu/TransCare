@@ -239,6 +239,7 @@ object BackupManager {
             appointments += Appointment(
                 doctorName = json.optString("doctorName").trim(),
                 place = json.optString("place").trim(),
+                notes = json.optString("notes").trim(),
                 dayStartMillis = dayStartMillis,
                 hour = hour,
                 minute = minute,

@@ -11,6 +11,8 @@ data class Appointment(
     val id: Long = 0L,
     val doctorName: String = "",
     val place: String = "",
+    /** Questions to ask or things to bring to the appointment. */
+    val notes: String = "",
     val dayStartMillis: Long = 0L,
     val hour: Int = DEFAULT_HOUR,
     val minute: Int = DEFAULT_MINUTE,
