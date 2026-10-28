@@ -34,11 +34,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -49,8 +52,14 @@ import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.util.Locale
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import org.nikoresu.transcare.R
+import org.nikoresu.transcare.data.AttachmentVault
 import org.nikoresu.transcare.domain.model.Appointment
+import org.nikoresu.transcare.domain.model.Attachment
+import org.nikoresu.transcare.ui.attachments.AttachmentListSaver
+import org.nikoresu.transcare.ui.attachments.AttachmentSection
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -80,8 +89,43 @@ fun AppointmentEditorScreen(
     var doctorName by rememberSaveable { mutableStateOf(initialAppointment?.doctorName.orEmpty()) }
     var place by rememberSaveable { mutableStateOf(initialAppointment?.place.orEmpty()) }
     var notes by rememberSaveable { mutableStateOf(initialAppointment?.notes.orEmpty()) }
+    var attachments by rememberSaveable(
+        initialAppointment?.id,
+        stateSaver = AttachmentListSaver,
+    ) {
+        mutableStateOf(initialAppointment?.attachments.orEmpty())
+    }
 
-    BackHandler(onBack = onDismiss)
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val pendingAttachmentIds = remember { mutableSetOf<String>() }
+
+    fun addAttachment(attachment: Attachment) {
+        attachments = attachments + attachment
+        pendingAttachmentIds += attachment.id
+    }
+
+    fun removeAttachment(attachment: Attachment) {
+        attachments = attachments - attachment
+        if (pendingAttachmentIds.remove(attachment.id)) {
+            scope.launch(Dispatchers.IO) {
+                AttachmentVault.deleteById(context, attachment.id)
+            }
+        }
+    }
+
+    fun dismiss() {
+        val pending = pendingAttachmentIds.toList()
+        pendingAttachmentIds.clear()
+        if (pending.isNotEmpty()) {
+            scope.launch(Dispatchers.IO) {
+                pending.forEach { AttachmentVault.deleteById(context, it) }
+            }
+        }
+        onDismiss()
+    }
+
+    BackHandler(onBack = ::dismiss)
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -99,7 +143,7 @@ fun AppointmentEditorScreen(
                     )
                 },
                 navigationIcon = {
-                    TextButton(onClick = onDismiss) {
+                    TextButton(onClick = { dismiss() }) {
                         Text(text = stringResource(R.string.action_back))
                     }
                 },
@@ -168,16 +212,23 @@ fun AppointmentEditorScreen(
                 modifier = Modifier.fillMaxWidth(),
             )
 
+            AttachmentSection(
+                attachments = attachments,
+                onAdd = ::addAttachment,
+                onRemove = ::removeAttachment,
+            )
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Spacer(modifier = Modifier.weight(1f))
-                TextButton(onClick = onDismiss) {
+                TextButton(onClick = { dismiss() }) {
                     Text(text = stringResource(R.string.action_cancel))
                 }
                 Button(
                     onClick = {
+                        pendingAttachmentIds.clear()
                         onSave(
                             Appointment(
                                 id = initialAppointment?.id ?: 0L,
@@ -187,6 +238,7 @@ fun AppointmentEditorScreen(
                                 dayStartMillis = Appointment.dayStartMillisOf(selectedDate),
                                 hour = hour,
                                 minute = minute,
+                                attachments = attachments,
                             ),
                         )
                     },

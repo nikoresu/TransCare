@@ -16,6 +16,8 @@ data class Appointment(
     val dayStartMillis: Long = 0L,
     val hour: Int = DEFAULT_HOUR,
     val minute: Int = DEFAULT_MINUTE,
+    /** Photos or PDFs linked to this appointment. */
+    val attachments: List<Attachment> = emptyList(),
 ) {
     /** Epoch millis of the appointment start date and time. */
     val startMillis: Long

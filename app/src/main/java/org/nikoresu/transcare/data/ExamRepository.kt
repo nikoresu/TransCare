@@ -24,7 +24,8 @@ import org.nikoresu.transcare.domain.model.ExamResult
  */
 class ExamRepository(context: Context) {
 
-    private val resultsFile = File(context.filesDir, RESULTS_FILE_NAME)
+    private val appContext = context.applicationContext
+    private val resultsFile = File(appContext.filesDir, RESULTS_FILE_NAME)
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val saveMutex = Mutex()
@@ -54,21 +55,37 @@ class ExamRepository(context: Context) {
     }
 
     suspend fun update(result: ExamResult) {
+        val previous = _results.value.firstOrNull { it.id == result.id }
         _results.value = _results.value.map { if (it.id == result.id) result else it }
         saveResults()
+        if (previous != null) {
+            AttachmentVault.deleteRemoved(
+                context = appContext,
+                previous = previous.attachments,
+                updated = result.attachments,
+            )
+        }
     }
 
     suspend fun delete(result: ExamResult) {
         _results.value = _results.value.filterNot { it.id == result.id }
         saveResults()
+        AttachmentVault.deleteAll(appContext, result.attachments)
     }
 
     /** Replaces all exam results, e.g. when importing a backup. */
     suspend fun replaceAll(results: List<ExamResult>) {
+        val previousAttachments = _results.value.flatMap { it.attachments }
+        val newAttachments = results.flatMap { it.attachments }
         _results.value = results.mapIndexed { index, result ->
             result.copy(id = index + 1L)
         }
         saveResults()
+        AttachmentVault.deleteRemoved(
+            context = appContext,
+            previous = previousAttachments,
+            updated = newAttachments,
+        )
     }
 
     private fun nextId(): Long = (_results.value.maxOfOrNull { it.id } ?: 0L) + 1L
@@ -110,6 +127,7 @@ class ExamRepository(context: Context) {
                             value = value,
                             dayStartMillis = json.optLong(KEY_DAY_START_MILLIS),
                             note = json.optString(KEY_NOTE),
+                            attachments = json.optAttachments(),
                         ),
                     )
                 }

@@ -27,7 +27,7 @@ class BackupTest {
     @Test
     fun fileNameUsesIsoDate() {
         assertEquals(
-            "TransCare-Data-2026-10-23.json",
+            "TransCare-Data-2026-10-23.zip",
             BackupManager.fileName(LocalDate.of(2026, 10, 23)),
         )
     }

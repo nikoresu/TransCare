@@ -2,7 +2,6 @@ package org.nikoresu.transcare.ui.exams
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -45,13 +44,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.StrokeJoin
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.pluralStringResource
@@ -68,9 +60,11 @@ import org.nikoresu.transcare.R
 import org.nikoresu.transcare.domain.model.ExamMetric
 import org.nikoresu.transcare.domain.model.ExamResult
 import org.nikoresu.transcare.domain.model.ExamStatus
+import org.nikoresu.transcare.domain.model.ExamTrend
 import org.nikoresu.transcare.pdf.ParsedPdfExams
 import org.nikoresu.transcare.pdf.PdfExamExtractor
 import org.nikoresu.transcare.pdf.PdfImportException
+import org.nikoresu.transcare.ui.attachments.AttachmentCountLabel
 
 /** Some document providers report PDFs with a generic MIME type. */
 private val PDF_MIME_TYPES = arrayOf("application/pdf", "application/octet-stream")
@@ -263,14 +257,12 @@ private fun ExamsContent(
     snackbarHostState: SnackbarHostState,
     modifier: Modifier = Modifier,
 ) {
-    val historyByMetric = remember(results) {
+    val trendsByMetric = remember(results) {
         results.groupBy { it.metric }
-            .mapValues { (_, values) ->
-                values.sortedWith(compareBy({ it.dayStartMillis }, { it.id }))
-            }
+            .mapValues { (metric, values) -> ExamTrend.of(metric, values) }
     }
-    val metricsWithResults = remember(historyByMetric) {
-        ExamMetric.entries.filter { it in historyByMetric }
+    val metricsWithResults = remember(trendsByMetric) {
+        ExamMetric.entries.filter { it in trendsByMetric }
     }
 
     Scaffold(
@@ -325,7 +317,7 @@ private fun ExamsContent(
                     metricsWithResults.forEach { overviewMetric ->
                         MetricOverviewCard(
                             metric = overviewMetric,
-                            history = historyByMetric.getValue(overviewMetric),
+                            trend = trendsByMetric.getValue(overviewMetric),
                             onClick = { onSelectMetric(overviewMetric) },
                         )
                     }
@@ -337,7 +329,7 @@ private fun ExamsContent(
                 } else {
                     MetricDetail(
                         metric = metric,
-                        history = historyByMetric[metric].orEmpty(),
+                        trend = trendsByMetric.getValue(metric),
                         onEdit = onEdit,
                         onDelete = onDelete,
                     )
@@ -410,10 +402,11 @@ private fun MetricFilterRow(
 @Composable
 private fun MetricOverviewCard(
     metric: ExamMetric,
-    history: List<ExamResult>,
+    trend: ExamTrend,
     onClick: () -> Unit,
 ) {
-    val latest = history.lastOrNull() ?: return
+    val latest = trend.latest ?: return
+    val deltaLabel = trend.deltaLabel()
 
     Card(
         modifier = Modifier
@@ -458,13 +451,16 @@ private fun MetricOverviewCard(
                 )
             }
 
-            if (history.size > 1) {
-                Sparkline(
-                    values = history.map { it.value },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(36.dp),
+            deltaLabel?.let { label ->
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+            }
+
+            if (trend.points.size > 1) {
+                MiniTrendChart(trend = trend)
             }
 
             Text(
@@ -479,11 +475,11 @@ private fun MetricOverviewCard(
 @Composable
 private fun MetricDetail(
     metric: ExamMetric,
-    history: List<ExamResult>,
+    trend: ExamTrend,
     onEdit: (ExamResult) -> Unit,
     onDelete: (ExamResult) -> Unit,
 ) {
-    if (history.isEmpty()) {
+    if (trend.points.isEmpty()) {
         Text(
             text = stringResource(R.string.exams_no_results, metric.displayName()),
             style = MaterialTheme.typography.bodyLarge,
@@ -491,7 +487,9 @@ private fun MetricDetail(
         return
     }
 
-    val latest = history.lastOrNull()
+    val latest = trend.latest
+    val deltaLabel = trend.deltaLabel()
+    val averageGapLabel = trend.averageGapLabel()
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(verticalAlignment = Alignment.Top) {
@@ -523,38 +521,6 @@ private fun MetricDetail(
                 modifier = Modifier.padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                if (history.size > 1) {
-                    MetricChart(
-                        metric = metric,
-                        history = history,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(160.dp),
-                    )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                    ) {
-                        Text(
-                            text = formatExamDate(history.first().date),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Text(
-                            text = formatExamDate(history.last().date),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    if (metric.referenceLow != null || metric.referenceHigh != null) {
-                        Text(
-                            text = stringResource(R.string.exams_reference_band),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-
                 latest?.let { result ->
                     Row(verticalAlignment = Alignment.Bottom) {
                         Text(
@@ -571,12 +537,26 @@ private fun MetricDetail(
                         )
                     }
                 }
+
+                deltaLabel?.let { label ->
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+
+                if (trend.points.size > 1) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    MetricTrendChart(trend = trend)
+                }
+
                 Text(
-                    text = if (history.size > 1) {
+                    text = if (trend.points.size > 1) {
                         pluralStringResource(
                             R.plurals.exams_trend_count,
-                            history.size,
-                            history.size,
+                            trend.points.size,
+                            trend.points.size,
                         )
                     } else {
                         stringResource(R.string.exams_add_for_trend)
@@ -584,6 +564,14 @@ private fun MetricDetail(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+
+                averageGapLabel?.let { label ->
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
         }
 
@@ -592,11 +580,12 @@ private fun MetricDetail(
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
         )
-        history.asReversed().forEach { result ->
+        trend.points.asReversed().forEach { point ->
             ExamResultItem(
-                result = result,
-                onEdit = { onEdit(result) },
-                onDelete = { onDelete(result) },
+                result = point.result,
+                daysSincePrevious = point.daysSincePrevious,
+                onEdit = { onEdit(point.result) },
+                onDelete = { onDelete(point.result) },
             )
         }
     }
@@ -605,6 +594,7 @@ private fun MetricDetail(
 @Composable
 private fun ExamResultItem(
     result: ExamResult,
+    daysSincePrevious: Long?,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
 ) {
@@ -636,6 +626,14 @@ private fun ExamResultItem(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            daysSincePrevious?.let { days ->
+                Text(
+                    text = examGapLabel(days),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            AttachmentCountLabel(count = result.attachments.size)
             if (result.note.isNotBlank()) {
                 Text(
                     text = result.note,
@@ -680,188 +678,4 @@ private fun statusColor(status: ExamStatus) = when (status) {
     ExamStatus.IN_RANGE -> MaterialTheme.colorScheme.primary
     ExamStatus.ABOVE -> MaterialTheme.colorScheme.error
     ExamStatus.NO_RANGE -> MaterialTheme.colorScheme.onSurfaceVariant
-}
-
-@Composable
-private fun MetricChart(
-    metric: ExamMetric,
-    history: List<ExamResult>,
-    modifier: Modifier = Modifier,
-) {
-    val lineColor = MaterialTheme.colorScheme.primary
-    val bandColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-    val guideColor = MaterialTheme.colorScheme.outlineVariant
-    val values = history.map { it.value }
-
-    Canvas(modifier = modifier) {
-        if (values.isEmpty()) return@Canvas
-        val referenceLow = metric.referenceLow
-        val referenceHigh = metric.referenceHigh
-
-        var minValue = values.minOrNull() ?: return@Canvas
-        var maxValue = values.maxOrNull() ?: return@Canvas
-        if (referenceLow != null) minValue = minOf(minValue, referenceLow)
-        if (referenceHigh != null) maxValue = maxOf(maxValue, referenceHigh)
-        if (minValue == maxValue) {
-            minValue -= 1.0
-            maxValue += 1.0
-        }
-
-        val padding = (maxValue - minValue) * 0.08
-        minValue -= padding
-        maxValue += padding
-
-        val horizontalPadding = 8.dp.toPx()
-        val verticalPadding = 10.dp.toPx()
-        val canvasWidth = size.width
-        val canvasHeight = size.height
-        val usableWidth = (canvasWidth - horizontalPadding * 2).coerceAtLeast(1f)
-        val usableHeight = (canvasHeight - verticalPadding * 2).coerceAtLeast(1f)
-        val span = maxValue - minValue
-
-        fun yFor(value: Double): Float {
-            val fraction = ((value - minValue) / span).toFloat()
-            return verticalPadding + usableHeight * (1f - fraction)
-        }
-
-        fun xFor(index: Int): Float =
-            if (values.size == 1) {
-                canvasWidth / 2f
-            } else {
-                horizontalPadding + usableWidth * index / (values.size - 1)
-            }
-
-        val highY = referenceHigh?.let { yFor(it) }
-        val lowY = referenceLow?.let { yFor(it) }
-        when {
-            highY != null && lowY != null -> drawRect(
-                color = bandColor,
-                topLeft = Offset(0f, highY),
-                size = Size(canvasWidth, lowY - highY),
-            )
-
-            highY != null -> drawRect(
-                color = bandColor,
-                topLeft = Offset(0f, highY),
-                size = Size(canvasWidth, canvasHeight - highY),
-            )
-
-            lowY != null -> drawRect(
-                color = bandColor,
-                topLeft = Offset(0f, 0f),
-                size = Size(canvasWidth, lowY),
-            )
-        }
-
-        val dash = PathEffect.dashPathEffect(
-            intervals = floatArrayOf(6.dp.toPx(), 6.dp.toPx()),
-        )
-        if (referenceHigh != null) {
-            drawLine(
-                color = guideColor,
-                start = Offset(0f, yFor(referenceHigh)),
-                end = Offset(canvasWidth, yFor(referenceHigh)),
-                strokeWidth = 1.dp.toPx(),
-                pathEffect = dash,
-            )
-        }
-        if (referenceLow != null) {
-            drawLine(
-                color = guideColor,
-                start = Offset(0f, yFor(referenceLow)),
-                end = Offset(canvasWidth, yFor(referenceLow)),
-                strokeWidth = 1.dp.toPx(),
-                pathEffect = dash,
-            )
-        }
-
-        if (values.size == 1) {
-            drawCircle(
-                color = lineColor,
-                radius = 5.dp.toPx(),
-                center = Offset(xFor(0), yFor(values[0])),
-            )
-        } else {
-            val path = Path()
-            values.forEachIndexed { index, value ->
-                val x = xFor(index)
-                val y = yFor(value)
-                if (index == 0) path.moveTo(x, y) else path.lineTo(x, y)
-            }
-            drawPath(
-                path = path,
-                color = lineColor,
-                style = Stroke(
-                    width = 2.dp.toPx(),
-                    cap = StrokeCap.Round,
-                    join = StrokeJoin.Round,
-                ),
-            )
-            values.forEachIndexed { index, value ->
-                drawCircle(
-                    color = lineColor,
-                    radius = 3.5.dp.toPx(),
-                    center = Offset(xFor(index), yFor(value)),
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun Sparkline(
-    values: List<Double>,
-    modifier: Modifier = Modifier,
-) {
-    val lineColor = MaterialTheme.colorScheme.primary
-
-    Canvas(modifier = modifier) {
-        if (values.isEmpty()) return@Canvas
-        val minValue = values.minOrNull() ?: return@Canvas
-        val maxValue = values.maxOrNull() ?: return@Canvas
-        val padding = 4.dp.toPx()
-        val canvasWidth = size.width
-        val canvasHeight = size.height
-        val usableWidth = (canvasWidth - padding * 2).coerceAtLeast(1f)
-        val usableHeight = (canvasHeight - padding * 2).coerceAtLeast(1f)
-        val span = maxValue - minValue
-
-        fun yFor(value: Double): Float =
-            if (span == 0.0) {
-                canvasHeight / 2f
-            } else {
-                padding + usableHeight * (1f - ((value - minValue) / span).toFloat())
-            }
-
-        fun xFor(index: Int): Float =
-            if (values.size == 1) {
-                canvasWidth / 2f
-            } else {
-                padding + usableWidth * index / (values.size - 1)
-            }
-
-        if (values.size == 1) {
-            drawCircle(
-                color = lineColor,
-                radius = 3.dp.toPx(),
-                center = Offset(xFor(0), yFor(values[0])),
-            )
-        } else {
-            val path = Path()
-            values.forEachIndexed { index, value ->
-                val x = xFor(index)
-                val y = yFor(value)
-                if (index == 0) path.moveTo(x, y) else path.lineTo(x, y)
-            }
-            drawPath(
-                path = path,
-                color = lineColor,
-                style = Stroke(
-                    width = 2.dp.toPx(),
-                    cap = StrokeCap.Round,
-                    join = StrokeJoin.Round,
-                ),
-            )
-        }
-    }
 }

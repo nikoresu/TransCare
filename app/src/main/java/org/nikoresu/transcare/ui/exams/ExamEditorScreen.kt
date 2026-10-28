@@ -32,9 +32,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -42,10 +44,16 @@ import androidx.compose.ui.unit.dp
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import org.nikoresu.transcare.R
+import org.nikoresu.transcare.data.AttachmentVault
+import org.nikoresu.transcare.domain.model.Attachment
 import org.nikoresu.transcare.domain.model.ExamMetric
 import org.nikoresu.transcare.domain.model.ExamResult
 import org.nikoresu.transcare.domain.model.formatExamNumber
+import org.nikoresu.transcare.ui.attachments.AttachmentListSaver
+import org.nikoresu.transcare.ui.attachments.AttachmentSection
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -71,7 +79,42 @@ fun ExamEditorScreen(
     var note by rememberSaveable(initialResult?.id) {
         mutableStateOf(initialResult?.note.orEmpty())
     }
+    var attachments by rememberSaveable(
+        initialResult?.id,
+        stateSaver = AttachmentListSaver,
+    ) {
+        mutableStateOf(initialResult?.attachments.orEmpty())
+    }
     var metricMenuExpanded by remember { mutableStateOf(false) }
+
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val pendingAttachmentIds = remember { mutableSetOf<String>() }
+
+    fun addAttachment(attachment: Attachment) {
+        attachments = attachments + attachment
+        pendingAttachmentIds += attachment.id
+    }
+
+    fun removeAttachment(attachment: Attachment) {
+        attachments = attachments - attachment
+        if (pendingAttachmentIds.remove(attachment.id)) {
+            scope.launch(Dispatchers.IO) {
+                AttachmentVault.deleteById(context, attachment.id)
+            }
+        }
+    }
+
+    fun dismiss() {
+        val pending = pendingAttachmentIds.toList()
+        pendingAttachmentIds.clear()
+        if (pending.isNotEmpty()) {
+            scope.launch(Dispatchers.IO) {
+                pending.forEach { AttachmentVault.deleteById(context, it) }
+            }
+        }
+        onDismiss()
+    }
 
     val parsedValue = valueText.trim()
         .replace(',', '.')
@@ -79,7 +122,7 @@ fun ExamEditorScreen(
         ?.takeIf { it.isFinite() && it >= 0.0 }
     val hasValueError = valueText.isNotBlank() && parsedValue == null
 
-    BackHandler(onBack = onDismiss)
+    BackHandler(onBack = { dismiss() })
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -97,7 +140,7 @@ fun ExamEditorScreen(
                     )
                 },
                 navigationIcon = {
-                    TextButton(onClick = onDismiss) {
+                    TextButton(onClick = { dismiss() }) {
                         Text(text = stringResource(R.string.action_back))
                     }
                 },
@@ -195,12 +238,18 @@ fun ExamEditorScreen(
                 modifier = Modifier.fillMaxWidth(),
             )
 
+            AttachmentSection(
+                attachments = attachments,
+                onAdd = ::addAttachment,
+                onRemove = ::removeAttachment,
+            )
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Spacer(modifier = Modifier.weight(1f))
-                TextButton(onClick = onDismiss) {
+                TextButton(onClick = { dismiss() }) {
                     Text(text = stringResource(R.string.action_cancel))
                 }
                 Button(
@@ -208,6 +257,7 @@ fun ExamEditorScreen(
                         val date = datePickerState.selectedDateMillis?.let { millis ->
                             Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate()
                         } ?: LocalDate.now()
+                        pendingAttachmentIds.clear()
                         onSave(
                             ExamResult(
                                 id = initialResult?.id ?: 0L,
@@ -215,6 +265,7 @@ fun ExamEditorScreen(
                                 value = parsedValue ?: return@Button,
                                 dayStartMillis = ExamResult.dayStartMillisOf(date),
                                 note = note.trim(),
+                                attachments = attachments,
                             ),
                         )
                     },

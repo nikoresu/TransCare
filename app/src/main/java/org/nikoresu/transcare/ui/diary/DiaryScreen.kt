@@ -46,6 +46,7 @@ import java.time.LocalDate
 import org.nikoresu.transcare.R
 import org.nikoresu.transcare.domain.model.DiaryEntry
 import org.nikoresu.transcare.domain.model.DiaryEntryType
+import org.nikoresu.transcare.ui.attachments.AttachmentCountLabel
 import org.nikoresu.transcare.ui.formatAppDate
 
 private enum class DiaryFilter {
@@ -311,6 +312,7 @@ private fun DiaryEntryCard(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
+            AttachmentCountLabel(count = entry.attachments.size)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End,

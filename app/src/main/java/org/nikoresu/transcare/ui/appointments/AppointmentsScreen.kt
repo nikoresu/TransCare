@@ -57,6 +57,7 @@ import org.nikoresu.transcare.R
 import org.nikoresu.transcare.domain.model.Appointment
 import org.nikoresu.transcare.notifications.AppointmentNotifications
 import org.nikoresu.transcare.notifications.NotificationPermissions
+import org.nikoresu.transcare.ui.attachments.AttachmentCountLabel
 
 private val WeekdayOrder = listOf(
     DayOfWeek.SUNDAY,
@@ -384,6 +385,7 @@ private fun AppointmentItem(
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
+                AttachmentCountLabel(count = appointment.attachments.size)
             }
             Column {
                 TextButton(onClick = onEdit) {

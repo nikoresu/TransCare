@@ -28,6 +28,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.nikoresu.transcare.R
+import org.nikoresu.transcare.data.AttachmentVault
 import org.nikoresu.transcare.notifications.AppointmentReminderScheduler
 import org.nikoresu.transcare.notifications.MedicationReminderScheduler
 import org.nikoresu.transcare.ui.appointments.AppointmentsScreen
@@ -157,13 +158,17 @@ fun MainScreen(
                     entries = entries,
                     medications = medications,
                     medicationDoses = medicationDoses,
-                    onImport = { importedAppointments, importedResults, importedEntries, importedMedications, importedMedicationDoses ->
-                        appointmentsViewModel.replaceAll(importedAppointments)
-                        examsViewModel.replaceAll(importedResults)
-                        diaryViewModel.replaceAll(importedEntries)
+                    onImport = { contents ->
+                        AttachmentVault.restoreAll(
+                            context = context.applicationContext,
+                            files = contents.attachmentFiles,
+                        )
+                        appointmentsViewModel.replaceAll(contents.appointments)
+                        examsViewModel.replaceAll(contents.examResults)
+                        diaryViewModel.replaceAll(contents.diaryEntries)
                         medicationsViewModel.replaceAll(
-                            importedMedications,
-                            importedMedicationDoses,
+                            contents.medications,
+                            contents.medicationDoses,
                         )
                     },
                     onLanguageChanged = onLanguageChanged,

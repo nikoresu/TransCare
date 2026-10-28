@@ -51,6 +51,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
 import org.nikoresu.transcare.R
+import org.nikoresu.transcare.data.BackupContents
 import org.nikoresu.transcare.domain.model.Appointment
 import org.nikoresu.transcare.domain.model.DiaryEntry
 import org.nikoresu.transcare.domain.model.ExamResult
@@ -84,13 +85,7 @@ fun ProfileScreen(
     entries: List<DiaryEntry>,
     medications: List<Medication>,
     medicationDoses: List<MedicationDose>,
-    onImport: suspend (
-        List<Appointment>,
-        List<ExamResult>,
-        List<DiaryEntry>,
-        List<Medication>,
-        List<MedicationDose>,
-    ) -> Unit,
+    onImport: suspend (BackupContents) -> Unit,
     modifier: Modifier = Modifier,
     onLanguageChanged: () -> Unit = {},
     onLockEnabledChanged: (Boolean) -> Unit = {},
@@ -651,13 +646,7 @@ private fun BackupScreen(
     entries: List<DiaryEntry>,
     medications: List<Medication>,
     medicationDoses: List<MedicationDose>,
-    onImport: suspend (
-        List<Appointment>,
-        List<ExamResult>,
-        List<DiaryEntry>,
-        List<Medication>,
-        List<MedicationDose>,
-    ) -> Unit,
+    onImport: suspend (BackupContents) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {

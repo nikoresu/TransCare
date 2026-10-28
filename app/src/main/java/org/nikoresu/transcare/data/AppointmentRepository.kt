@@ -23,7 +23,8 @@ import org.nikoresu.transcare.domain.model.Appointment
  */
 class AppointmentRepository(context: Context) {
 
-    private val appointmentsFile = File(context.filesDir, APPOINTMENTS_FILE_NAME)
+    private val appContext = context.applicationContext
+    private val appointmentsFile = File(appContext.filesDir, APPOINTMENTS_FILE_NAME)
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val saveMutex = Mutex()
@@ -49,21 +50,37 @@ class AppointmentRepository(context: Context) {
     }
 
     suspend fun update(appointment: Appointment) {
+        val previous = _appointments.value.firstOrNull { it.id == appointment.id }
         _appointments.value = _appointments.value.map { if (it.id == appointment.id) appointment else it }
         saveAppointments()
+        if (previous != null) {
+            AttachmentVault.deleteRemoved(
+                context = appContext,
+                previous = previous.attachments,
+                updated = appointment.attachments,
+            )
+        }
     }
 
     suspend fun delete(appointment: Appointment) {
         _appointments.value = _appointments.value.filterNot { it.id == appointment.id }
         saveAppointments()
+        AttachmentVault.deleteAll(appContext, appointment.attachments)
     }
 
     /** Replaces all appointments, e.g. when importing a backup. */
     suspend fun replaceAll(appointments: List<Appointment>) {
+        val previousAttachments = _appointments.value.flatMap { it.attachments }
+        val newAttachments = appointments.flatMap { it.attachments }
         _appointments.value = appointments.mapIndexed { index, appointment ->
             appointment.copy(id = index + 1L)
         }
         saveAppointments()
+        AttachmentVault.deleteRemoved(
+            context = appContext,
+            previous = previousAttachments,
+            updated = newAttachments,
+        )
     }
 
     private fun nextId(): Long = (_appointments.value.maxOfOrNull { it.id } ?: 0L) + 1L
@@ -123,6 +140,7 @@ class AppointmentRepository(context: Context) {
                                 dayStartMillis = json.optLong(KEY_DAY_START_MILLIS),
                                 hour = json.optInt(KEY_HOUR),
                                 minute = json.optInt(KEY_MINUTE),
+                                attachments = json.optAttachments(),
                             ),
                         )
                     }

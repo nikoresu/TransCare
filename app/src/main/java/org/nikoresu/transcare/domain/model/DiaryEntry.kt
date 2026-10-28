@@ -14,6 +14,8 @@ data class DiaryEntry(
     val title: String = "",
     val text: String = "",
     val type: DiaryEntryType = DiaryEntryType.NOTES,
+    /** Photos or PDFs linked to this entry. */
+    val attachments: List<Attachment> = emptyList(),
 ) {
     /** Calendar day the entry belongs to. */
     val date: LocalDate
@@ -21,7 +23,7 @@ data class DiaryEntry(
 
     /** True when there is nothing to show or save. */
     val isBlank: Boolean
-        get() = title.isBlank() && text.isBlank()
+        get() = title.isBlank() && text.isBlank() && attachments.isEmpty()
 
     companion object {
         private val SYSTEM_ZONE: ZoneId = ZoneId.systemDefault()

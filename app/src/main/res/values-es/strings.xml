@@ -142,21 +142,22 @@
 
     <!-- Backup -->
     <string name="backup_title">Copia de seguridad</string>
-    <string name="backup_description">Guarda todas las citas, los resultados de exámenes, las entradas del diario y los medicamentos en un único archivo JSON en la carpeta Descargas de este dispositivo, o restaura una copia de seguridad anterior. Las copias se pueden cifrar con tu PIN de la app o una frase de contraseña.</string>
+    <string name="backup_description">Guarda todas las citas, los resultados de exámenes, las entradas del diario, los medicamentos y los archivos adjuntos en un archivo ZIP en la carpeta Descargas de este dispositivo, o restaura una copia de seguridad anterior. Las copias se pueden cifrar con tu PIN de la app o una frase de contraseña.</string>
     <string name="backup_appointments">Citas</string>
     <string name="backup_exam_results">Resultados de exámenes</string>
     <string name="backup_diary_entries">Entradas del diario</string>
     <string name="backup_medications">Medicamentos</string>
     <string name="backup_medication_doses">Registros de dosis</string>
+    <string name="backup_attachments">Archivos adjuntos</string>
     <string name="backup_file_name">Nombre del archivo</string>
     <string name="backup_saved_encrypted">Copia de seguridad cifrada guardada: Descargas/%1$s</string>
     <string name="backup_saved_plain">Copia de seguridad sin cifrar guardada: Descargas/%1$s</string>
     <string name="backup_save_failed">No se pudo guardar la copia de seguridad. Inténtalo de nuevo.</string>
     <string name="backup_save_action">Guardar copia de seguridad en Descargas</string>
     <string name="backup_restore_title">Restaurar desde una copia de seguridad</string>
-    <string name="backup_restore_description">Elige un archivo de copia de seguridad de TransCare. La importación reemplaza las citas, los resultados de exámenes, las entradas del diario y los medicamentos que están actualmente en la app.</string>
+    <string name="backup_restore_description">Elige un archivo de copia de seguridad de TransCare. La importación reemplaza las citas, los resultados de exámenes, las entradas del diario, los medicamentos y los archivos adjuntos que están actualmente en la app.</string>
     <string name="backup_import_action">Importar copia de seguridad desde un archivo</string>
-    <string name="backup_security_note">Las copias cifradas usan AES-256-GCM con tu PIN de la app o una frase de contraseña. Guárdala bien: sin ella, no se puede restaurar la copia. Tus datos locales también están cifrados con una clave protegida por Android Keystore.</string>
+    <string name="backup_security_note">Las copias cifradas usan AES-256-GCM con tu PIN de la app o una frase de contraseña. Guárdala bien: sin ella, no se puede restaurar la copia. Tus datos locales y los archivos adjuntos también están cifrados con una clave protegida por Android Keystore.</string>
     <string name="backup_passphrase_label">PIN o frase de contraseña</string>
     <string name="backup_passphrase_invalid">Ingresa al menos 4 caracteres.</string>
     <string name="backup_passphrase_wrong">No se pudo descifrar esta copia. Revisa el PIN o la frase de contraseña e inténtalo de nuevo.</string>
@@ -166,7 +167,7 @@
     <string name="backup_encrypt_action">Guardar cifrada</string>
     <string name="backup_save_plain_action">Guardar sin cifrar</string>
     <string name="backup_plain_warning_title">¿Guardar una copia sin cifrar?</string>
-    <string name="backup_plain_warning_message">El archivo contendrá tu información de salud como JSON legible. Cualquier persona con acceso al archivo podrá leerla. Se recomienda encarecidamente cifrar la copia.</string>
+    <string name="backup_plain_warning_message">El archivo contendrá tu información de salud como JSON legible, y las fotos o PDF adjuntos como archivos legibles. Cualquier persona con acceso al archivo podrá leerlos. Se recomienda encarecidamente cifrar la copia.</string>
     <string name="backup_plain_save_action">Guardar sin cifrar</string>
     <string name="backup_decrypt_title">Esta copia está cifrada</string>
     <string name="backup_decrypt_description">Ingresa el PIN o la frase de contraseña que se usó al crear esta copia.</string>
@@ -179,6 +180,11 @@
     <string name="backup_will_replace">La importación reemplazará los datos actuales: %1$s, %2$s, %3$s, %4$s y %5$s.</string>
     <string name="backup_imported">Se importaron %1$s, %2$s, %3$s, %4$s y %5$s.</string>
     <string name="backup_imported_with_skipped">Se importaron %1$s, %2$s, %3$s, %4$s y %5$s. %6$s</string>
+    <plurals name="backup_attachments_included">
+        <item quantity="one">Incluye %d archivo adjunto.</item>
+        <item quantity="many">Incluye %d de archivos adjuntos.</item>
+        <item quantity="other">Incluye %d archivos adjuntos.</item>
+    </plurals>
 
     <plurals name="appointment_count">
         <item quantity="one">%d cita</item>
@@ -244,6 +250,24 @@
     <string name="diary_empty_description">Anota tus síntomas, preguntas o notas sobre tus citas.</string>
     <string name="diary_empty_action">Usa el botón de abajo para escribir tu primera entrada.</string>
     <string name="diary_empty_button">Escribir una entrada</string>
+
+    <!-- Attachments -->
+    <string name="attachments_title">Archivos adjuntos</string>
+    <string name="attachments_add">+ Agregar archivo</string>
+    <string name="attachments_empty">Adjunta fotos o PDF, como informes de laboratorio, recetas o cartas de derivación.</string>
+    <string name="attachments_storage_note">Los archivos se cifran en este dispositivo y se incluyen en las copias de seguridad.</string>
+    <string name="attachments_remove">Quitar</string>
+    <string name="attachments_missing">Archivo no encontrado</string>
+    <string name="attachments_open_title">Abrir archivo adjunto</string>
+    <string name="attachments_open_failed">Ninguna app puede abrir este archivo.</string>
+    <string name="attachments_import_failed">No se pudo agregar este archivo. Inténtalo de nuevo.</string>
+    <string name="attachments_too_large">Este archivo es demasiado grande. Elige uno de menos de 20 MB.</string>
+    <string name="attachments_unsupported">Elige una imagen o un archivo PDF.</string>
+    <plurals name="attachment_count_short">
+        <item quantity="one">%d archivo</item>
+        <item quantity="many">%d de archivos</item>
+        <item quantity="other">%d archivos</item>
+    </plurals>
 
     <!-- Appointments -->
     <string name="appointments_today">Hoy</string>
@@ -359,6 +383,14 @@
     <string name="exams_reference">Referencia: %1$s</string>
     <string name="exams_no_results">Aún no hay resultados de %1$s.</string>
     <string name="exams_reference_band">Banda sombreada = rango de referencia</string>
+    <string name="exams_delta_since">%1$s desde %2$s</string>
+    <string name="exams_delta_no_change">Sin cambios desde %1$s</string>
+    <string name="exams_average_gap">Aproximadamente %1$d días entre pruebas</string>
+    <plurals name="exams_gap_days">
+        <item quantity="one">%d día desde la prueba anterior</item>
+        <item quantity="many">%d de días desde la prueba anterior</item>
+        <item quantity="other">%d días desde la prueba anterior</item>
+    </plurals>
     <string name="exams_add_for_trend">Agrega otro resultado para ver una tendencia.</string>
     <string name="exams_history">Historial</string>
     <string name="exams_new_title">Nuevo resultado</string>

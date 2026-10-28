@@ -1,8 +1,11 @@
 package org.nikoresu.transcare
 
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
 import java.time.Instant
 import java.time.LocalDate
 import org.json.JSONObject
+import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
@@ -45,6 +48,52 @@ class BackupCryptoTest {
         assertFalse(envelope.contains("Dr. Rivera"))
         assertFalse(envelope.contains("Clinic"))
         assertTrue(BackupCrypto.isEncryptedBackup(envelope))
+    }
+
+    @Test
+    fun streamingEncryptionRoundTripsLargePayload() {
+        val payload = ByteArray(2 * 1024 * 1024) { index -> (index % 251).toByte() }
+        val output = ByteArrayOutputStream()
+
+        BackupCrypto.encryptingStream(output, passphrase, iterations).use { stream ->
+            stream.write(payload)
+        }
+
+        val envelope = output.toByteArray()
+        assertTrue(BackupCrypto.isBinaryEnvelope(envelope))
+        assertArrayEquals(payload, BackupCrypto.decryptBytes(envelope, passphrase))
+    }
+
+    @Test
+    fun streamingDecryptionRoundTripsLargePayload() {
+        val payload = ByteArray(2 * 1024 * 1024) { index -> (index % 251).toByte() }
+        val output = ByteArrayOutputStream()
+
+        BackupCrypto.encryptingStream(output, passphrase, iterations).use { stream ->
+            stream.write(payload)
+        }
+
+        val decrypted = BackupCrypto.decryptingStream(
+            ByteArrayInputStream(output.toByteArray()),
+            passphrase,
+        ).use { it.readBytes() }
+
+        assertArrayEquals(payload, decrypted)
+    }
+
+    @Test
+    fun streamingDecryptionRejectsWrongPassphrase() {
+        val output = ByteArrayOutputStream()
+        BackupCrypto.encryptingStream(output, passphrase, iterations).use { stream ->
+            stream.write(ByteArray(64 * 1024) { 7 })
+        }
+
+        assertThrows(BackupCrypto.WrongPassphraseException::class.java) {
+            BackupCrypto.decryptingStream(
+                ByteArrayInputStream(output.toByteArray()),
+                "0000".toCharArray(),
+            ).use { it.readBytes() }
+        }
     }
 
     @Test
@@ -159,11 +208,11 @@ class BackupCryptoTest {
         val day = LocalDate.of(2026, 10, 23)
 
         assertEquals(
-            "TransCare-Data-2026-10-23.encrypted.json",
+            "TransCare-Data-2026-10-23.encrypted.tcbak",
             BackupManager.fileName(day, encrypted = true),
         )
         assertEquals(
-            "TransCare-Data-2026-10-23.json",
+            "TransCare-Data-2026-10-23.zip",
             BackupManager.fileName(day, encrypted = false),
         )
     }

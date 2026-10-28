@@ -24,7 +24,8 @@ import org.nikoresu.transcare.domain.model.DiaryEntryType
  */
 class DiaryRepository(context: Context) {
 
-    private val entriesFile = File(context.filesDir, ENTRIES_FILE_NAME)
+    private val appContext = context.applicationContext
+    private val entriesFile = File(appContext.filesDir, ENTRIES_FILE_NAME)
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val saveMutex = Mutex()
@@ -50,21 +51,37 @@ class DiaryRepository(context: Context) {
     }
 
     suspend fun update(entry: DiaryEntry) {
+        val previous = _entries.value.firstOrNull { it.id == entry.id }
         _entries.value = _entries.value.map { if (it.id == entry.id) entry else it }
         saveEntries()
+        if (previous != null) {
+            AttachmentVault.deleteRemoved(
+                context = appContext,
+                previous = previous.attachments,
+                updated = entry.attachments,
+            )
+        }
     }
 
     suspend fun delete(entry: DiaryEntry) {
         _entries.value = _entries.value.filterNot { it.id == entry.id }
         saveEntries()
+        AttachmentVault.deleteAll(appContext, entry.attachments)
     }
 
     /** Replaces all diary entries, e.g. when importing a backup. */
     suspend fun replaceAll(entries: List<DiaryEntry>) {
+        val previousAttachments = _entries.value.flatMap { it.attachments }
+        val newAttachments = entries.flatMap { it.attachments }
         _entries.value = entries.mapIndexed { index, entry ->
             entry.copy(id = index + 1L)
         }
         saveEntries()
+        AttachmentVault.deleteRemoved(
+            context = appContext,
+            previous = previousAttachments,
+            updated = newAttachments,
+        )
     }
 
     private fun nextId(): Long = (_entries.value.maxOfOrNull { it.id } ?: 0L) + 1L
@@ -102,6 +119,7 @@ class DiaryRepository(context: Context) {
                             title = json.optString(KEY_TITLE),
                             text = json.optString(KEY_TEXT),
                             type = DiaryEntryType.fromStorageValue(json.optString(KEY_TYPE)),
+                            attachments = json.optAttachments(),
                         ),
                     )
                 }

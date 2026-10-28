@@ -30,18 +30,26 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import org.nikoresu.transcare.R
+import org.nikoresu.transcare.data.AttachmentVault
+import org.nikoresu.transcare.domain.model.Attachment
 import org.nikoresu.transcare.domain.model.DiaryEntry
 import org.nikoresu.transcare.domain.model.DiaryEntryType
+import org.nikoresu.transcare.ui.attachments.AttachmentListSaver
+import org.nikoresu.transcare.ui.attachments.AttachmentSection
 import org.nikoresu.transcare.ui.formatAppDate
 
 /**
@@ -59,6 +67,9 @@ fun DiaryEditorScreen(
     val initialDate = remember(initialEntry?.id) { initialEntry?.date ?: LocalDate.now() }
     val initialTitle = initialEntry?.title.orEmpty()
     val initialText = initialEntry?.text.orEmpty()
+    val initialAttachments = remember(initialEntry?.id) {
+        initialEntry?.attachments.orEmpty()
+    }
     val startingType = initialEntry?.type ?: initialType
 
     var dateEpochDay by rememberSaveable(initialEntry?.id) {
@@ -67,20 +78,56 @@ fun DiaryEditorScreen(
     var title by rememberSaveable(initialEntry?.id) { mutableStateOf(initialTitle) }
     var text by rememberSaveable(initialEntry?.id) { mutableStateOf(initialText) }
     var type by rememberSaveable(initialEntry?.id) { mutableStateOf(startingType) }
+    var attachments by rememberSaveable(
+        initialEntry?.id,
+        stateSaver = AttachmentListSaver,
+    ) {
+        mutableStateOf(initialAttachments)
+    }
     var showDatePicker by remember { mutableStateOf(false) }
     var showDiscardDialog by remember { mutableStateOf(false) }
 
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val pendingAttachmentIds = remember { mutableSetOf<String>() }
+
+    fun addAttachment(attachment: Attachment) {
+        attachments = attachments + attachment
+        pendingAttachmentIds += attachment.id
+    }
+
+    fun removeAttachment(attachment: Attachment) {
+        attachments = attachments - attachment
+        if (pendingAttachmentIds.remove(attachment.id)) {
+            scope.launch(Dispatchers.IO) {
+                AttachmentVault.deleteById(context, attachment.id)
+            }
+        }
+    }
+
+    fun discardPendingAttachments() {
+        val pending = pendingAttachmentIds.toList()
+        pendingAttachmentIds.clear()
+        if (pending.isNotEmpty()) {
+            scope.launch(Dispatchers.IO) {
+                pending.forEach { AttachmentVault.deleteById(context, it) }
+            }
+        }
+    }
+
     val date = LocalDate.ofEpochDay(dateEpochDay)
-    val canSave = title.isNotBlank() || text.isNotBlank()
+    val canSave = title.isNotBlank() || text.isNotBlank() || attachments.isNotEmpty()
     val isDirty = title != initialTitle ||
         text != initialText ||
         type != startingType ||
-        dateEpochDay != initialDate.toEpochDay()
+        dateEpochDay != initialDate.toEpochDay() ||
+        attachments != initialAttachments
 
     val requestDismiss = {
         if (isDirty) {
             showDiscardDialog = true
         } else {
+            discardPendingAttachments()
             onDismiss()
         }
     }
@@ -110,6 +157,7 @@ fun DiaryEditorScreen(
                 actions = {
                     TextButton(
                         onClick = {
+                            pendingAttachmentIds.clear()
                             onSave(
                                 DiaryEntry(
                                     id = initialEntry?.id ?: 0L,
@@ -117,6 +165,7 @@ fun DiaryEditorScreen(
                                     title = title.trim(),
                                     text = text.trim(),
                                     type = type,
+                                    attachments = attachments,
                                 ),
                             )
                         },
@@ -194,6 +243,12 @@ fun DiaryEditorScreen(
                     .heightIn(min = 220.dp),
             )
 
+            AttachmentSection(
+                attachments = attachments,
+                onAdd = ::addAttachment,
+                onRemove = ::removeAttachment,
+            )
+
             Text(
                 text = stringResource(R.string.diary_storage_note),
                 style = MaterialTheme.typography.bodySmall,
@@ -244,6 +299,7 @@ fun DiaryEditorScreen(
                 TextButton(
                     onClick = {
                         showDiscardDialog = false
+                        discardPendingAttachments()
                         onDismiss()
                     },
                 ) {

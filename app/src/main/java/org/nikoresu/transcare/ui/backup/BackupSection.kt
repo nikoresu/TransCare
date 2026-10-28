@@ -40,6 +40,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
@@ -58,8 +59,10 @@ import org.nikoresu.transcare.security.SecurityPreferences
 
 private const val TAG = "BackupSection"
 
-/** Some file providers report .json files as plain text or binary. */
+/** Some file providers report .zip and .json files with different MIME types. */
 private val IMPORT_MIME_TYPES = arrayOf(
+    "application/zip",
+    "application/x-zip-compressed",
     "application/json",
     "text/plain",
     "application/octet-stream",
@@ -78,13 +81,7 @@ fun BackupSection(
     entries: List<DiaryEntry>,
     medications: List<Medication>,
     medicationDoses: List<MedicationDose>,
-    onImport: suspend (
-        List<Appointment>,
-        List<ExamResult>,
-        List<DiaryEntry>,
-        List<Medication>,
-        List<MedicationDose>,
-    ) -> Unit,
+    onImport: suspend (BackupContents) -> Unit,
     modifier: Modifier = Modifier,
     showTitle: Boolean = true,
 ) {
@@ -97,7 +94,7 @@ fun BackupSection(
     var saveMessage by remember { mutableStateOf<StatusMessage?>(null) }
     var importMessage by remember { mutableStateOf<StatusMessage?>(null) }
     var pendingImport by remember { mutableStateOf<BackupContents?>(null) }
-    var pendingEncryptedText by remember { mutableStateOf<String?>(null) }
+    var pendingEncryptedSource by remember { mutableStateOf<File?>(null) }
     var importPassphrase by remember { mutableStateOf("") }
     var importPassphraseError by remember { mutableStateOf<String?>(null) }
     var showExportDialog by remember { mutableStateOf(false) }
@@ -114,6 +111,7 @@ fun BackupSection(
             contents.medications.isEmpty() &&
             contents.medicationDoses.isEmpty()
         ) {
+            BackupManager.discardStagedAttachments(context.applicationContext)
             importMessage = StatusMessage(
                 text = resources.getString(R.string.backup_empty_file),
                 isError = true,
@@ -190,7 +188,7 @@ fun BackupSection(
     }
 
     fun decryptPending() {
-        val text = pendingEncryptedText ?: return
+        val source = pendingEncryptedSource ?: return
         if (importPassphrase.length < 4) {
             importPassphraseError = resources.getString(R.string.backup_passphrase_invalid)
             return
@@ -200,18 +198,25 @@ fun BackupSection(
         scope.launch {
             val passphrase = importPassphrase.toCharArray()
             try {
-                val contents = withContext(Dispatchers.Default) {
-                    BackupManager.decryptBackup(text, passphrase)
+                val contents = withContext(Dispatchers.IO) {
+                    BackupManager.decryptBackup(
+                        source = source,
+                        passphrase = passphrase,
+                        stagingDir = BackupManager.stagingDirectory(
+                            context.applicationContext,
+                        ),
+                    )
                 }
-                pendingEncryptedText = null
+                pendingEncryptedSource = null
                 importPassphrase = ""
                 showContents(contents)
             } catch (_: BackupCrypto.WrongPassphraseException) {
                 importPassphraseError = resources.getString(R.string.backup_passphrase_wrong)
             } catch (exception: Exception) {
                 Log.e(TAG, "Could not decrypt backup", exception)
-                pendingEncryptedText = null
+                pendingEncryptedSource = null
                 importPassphrase = ""
+                BackupManager.discardStagedAttachments(context.applicationContext)
                 importMessage = StatusMessage(
                     text = resources.getString(R.string.backup_read_failed),
                     isError = true,
@@ -239,13 +244,14 @@ fun BackupSection(
                 ) {
                     is BackupReadResult.Plain -> showContents(result.contents)
                     is BackupReadResult.Encrypted -> {
-                        pendingEncryptedText = result.text
+                        pendingEncryptedSource = result.source
                         importPassphrase = ""
                         importPassphraseError = null
                     }
                 }
             } catch (exception: Exception) {
                 Log.e(TAG, "Could not read backup", exception)
+                BackupManager.discardStagedAttachments(context.applicationContext)
                 importMessage = StatusMessage(
                     text = resources.getString(R.string.backup_read_failed),
                     isError = true,
@@ -296,6 +302,14 @@ fun BackupSection(
                 BackupRow(
                     label = stringResource(R.string.backup_medication_doses),
                     value = medicationDoses.size.toString(),
+                )
+                BackupRow(
+                    label = stringResource(R.string.backup_attachments),
+                    value = (
+                        appointments.sumOf { it.attachments.size } +
+                            results.sumOf { it.attachments.size } +
+                            entries.sumOf { it.attachments.size }
+                        ).toString(),
                 )
                 BackupRow(
                     label = stringResource(R.string.backup_file_name),
@@ -542,14 +556,15 @@ fun BackupSection(
         )
     }
 
-    val encryptedText = pendingEncryptedText
-    if (encryptedText != null) {
+    val encryptedSource = pendingEncryptedSource
+    if (encryptedSource != null) {
         AlertDialog(
             onDismissRequest = {
                 if (!isImporting) {
-                    pendingEncryptedText = null
+                    pendingEncryptedSource = null
                     importPassphrase = ""
                     importPassphraseError = null
+                    BackupManager.discardStagedAttachments(context.applicationContext)
                 }
             },
             title = { Text(text = stringResource(R.string.backup_decrypt_title)) },
@@ -601,9 +616,12 @@ fun BackupSection(
                 TextButton(
                     onClick = {
                         if (!isImporting) {
-                            pendingEncryptedText = null
+                            pendingEncryptedSource = null
                             importPassphrase = ""
                             importPassphraseError = null
+                            BackupManager.discardStagedAttachments(
+                                context.applicationContext,
+                            )
                         }
                     },
                     enabled = !isImporting,
@@ -641,8 +659,21 @@ fun BackupSection(
             importData.medicationDoses.size,
             R.plurals.medication_dose_count,
         )
+        val importedAttachmentCount = importData.attachmentCount
+        val attachmentSummary = if (importedAttachmentCount > 0) {
+            resources.getQuantityString(
+                R.plurals.backup_attachments_included,
+                importedAttachmentCount,
+                importedAttachmentCount,
+            )
+        } else {
+            null
+        }
         AlertDialog(
-            onDismissRequest = { pendingImport = null },
+            onDismissRequest = {
+                pendingImport = null
+                BackupManager.discardStagedAttachments(context.applicationContext)
+            },
             title = { Text(text = stringResource(R.string.backup_replace_title)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -695,6 +726,9 @@ fun BackupSection(
                             ),
                         )
                     }
+                    attachmentSummary?.let { summary ->
+                        Text(text = summary)
+                    }
                 }
             },
             confirmButton = {
@@ -706,14 +740,11 @@ fun BackupSection(
                         scope.launch {
                             importMessage = try {
                                 withContext(NonCancellable) {
-                                    onImport(
-                                        importData.appointments,
-                                        importData.examResults,
-                                        importData.diaryEntries,
-                                        importData.medications,
-                                        importData.medicationDoses,
-                                    )
+                                    onImport(importData)
                                 }
+                                BackupManager.discardStagedAttachments(
+                                    context.applicationContext,
+                                )
                                 val skipped = if (importData.skippedEntries > 0) {
                                     resources.getQuantityString(
                                         R.plurals.invalid_entry_skipped,
@@ -723,31 +754,36 @@ fun BackupSection(
                                 } else {
                                     null
                                 }
+                                val baseMessage = if (skipped == null) {
+                                    resources.getString(
+                                        R.string.backup_imported,
+                                        importedAppointments,
+                                        importedResults,
+                                        importedEntries,
+                                        importedMedications,
+                                        importedMedicationDoses,
+                                    )
+                                } else {
+                                    resources.getString(
+                                        R.string.backup_imported_with_skipped,
+                                        importedAppointments,
+                                        importedResults,
+                                        importedEntries,
+                                        importedMedications,
+                                        importedMedicationDoses,
+                                        skipped,
+                                    )
+                                }
                                 StatusMessage(
-                                    text = if (skipped == null) {
-                                        resources.getString(
-                                            R.string.backup_imported,
-                                            importedAppointments,
-                                            importedResults,
-                                            importedEntries,
-                                            importedMedications,
-                                            importedMedicationDoses,
-                                        )
-                                    } else {
-                                        resources.getString(
-                                            R.string.backup_imported_with_skipped,
-                                            importedAppointments,
-                                            importedResults,
-                                            importedEntries,
-                                            importedMedications,
-                                            importedMedicationDoses,
-                                            skipped,
-                                        )
-                                    },
+                                    text = listOfNotNull(baseMessage, attachmentSummary)
+                                        .joinToString(" "),
                                     isError = false,
                                 )
                             } catch (exception: Exception) {
                                 Log.e(TAG, "Import failed", exception)
+                                BackupManager.discardStagedAttachments(
+                                    context.applicationContext,
+                                )
                                 StatusMessage(
                                     text = resources.getString(R.string.backup_import_failed),
                                     isError = true,
@@ -765,7 +801,12 @@ fun BackupSection(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { pendingImport = null }) {
+                TextButton(
+                    onClick = {
+                        pendingImport = null
+                        BackupManager.discardStagedAttachments(context.applicationContext)
+                    },
+                ) {
                     Text(text = stringResource(R.string.action_cancel))
                 }
             },

@@ -12,6 +12,8 @@ data class ExamResult(
     val value: Double,
     val dayStartMillis: Long = 0L,
     val note: String = "",
+    /** Photos or PDFs linked to this result, such as the lab report. */
+    val attachments: List<Attachment> = emptyList(),
 ) {
     /** Calendar day on which the sample was taken. */
     val date: LocalDate
