@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -20,6 +21,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -35,18 +37,24 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.nikoresu.transcare.R
 import org.nikoresu.transcare.data.BackupContents
+import org.nikoresu.transcare.data.BackupCrypto
 import org.nikoresu.transcare.data.BackupManager
+import org.nikoresu.transcare.data.BackupReadResult
 import org.nikoresu.transcare.domain.model.Appointment
 import org.nikoresu.transcare.domain.model.DiaryEntry
 import org.nikoresu.transcare.domain.model.ExamResult
 import org.nikoresu.transcare.domain.model.Medication
 import org.nikoresu.transcare.domain.model.MedicationDose
+import org.nikoresu.transcare.security.SecurityPreferences
 
 private const val TAG = "BackupSection"
 
@@ -84,9 +92,135 @@ fun BackupSection(
     val scope = rememberCoroutineScope()
     var isSaving by remember { mutableStateOf(false) }
     var isImporting by remember { mutableStateOf(false) }
+    var isVerifying by remember { mutableStateOf(false) }
     var saveMessage by remember { mutableStateOf<StatusMessage?>(null) }
     var importMessage by remember { mutableStateOf<StatusMessage?>(null) }
     var pendingImport by remember { mutableStateOf<BackupContents?>(null) }
+    var pendingEncryptedText by remember { mutableStateOf<String?>(null) }
+    var importPassphrase by remember { mutableStateOf("") }
+    var importPassphraseError by remember { mutableStateOf<String?>(null) }
+    var showExportDialog by remember { mutableStateOf(false) }
+    var exportPassphrase by remember { mutableStateOf("") }
+    var exportPassphraseError by remember { mutableStateOf<String?>(null) }
+    var showPlainWarning by remember { mutableStateOf(false) }
+    val lockEnabled = SecurityPreferences.isLockEnabled(context)
+
+    fun showContents(contents: BackupContents) {
+        if (
+            contents.appointments.isEmpty() &&
+            contents.examResults.isEmpty() &&
+            contents.diaryEntries.isEmpty() &&
+            contents.medications.isEmpty() &&
+            contents.medicationDoses.isEmpty()
+        ) {
+            importMessage = StatusMessage(
+                text = resources.getString(R.string.backup_empty_file),
+                isError = true,
+            )
+        } else {
+            pendingImport = contents
+        }
+    }
+
+    fun saveEncrypted(passphrase: CharArray) {
+        isSaving = true
+        saveMessage = null
+        scope.launch {
+            try {
+                val file = BackupManager.saveToDownloads(
+                    context = context.applicationContext,
+                    appointments = appointments,
+                    results = results,
+                    entries = entries,
+                    medications = medications,
+                    medicationDoses = medicationDoses,
+                    passphrase = passphrase,
+                )
+                saveMessage = StatusMessage(
+                    text = resources.getString(
+                        R.string.backup_saved_encrypted,
+                        file.displayName,
+                    ),
+                    isError = false,
+                )
+            } catch (exception: Exception) {
+                Log.e(TAG, "Encrypted backup failed", exception)
+                saveMessage = StatusMessage(
+                    text = resources.getString(R.string.backup_save_failed),
+                    isError = true,
+                )
+            } finally {
+                passphrase.fill('\u0000')
+                isSaving = false
+            }
+        }
+    }
+
+    fun savePlain() {
+        isSaving = true
+        saveMessage = null
+        scope.launch {
+            try {
+                val file = BackupManager.saveToDownloads(
+                    context = context.applicationContext,
+                    appointments = appointments,
+                    results = results,
+                    entries = entries,
+                    medications = medications,
+                    medicationDoses = medicationDoses,
+                )
+                saveMessage = StatusMessage(
+                    text = resources.getString(
+                        R.string.backup_saved_plain,
+                        file.displayName,
+                    ),
+                    isError = false,
+                )
+            } catch (exception: Exception) {
+                Log.e(TAG, "Backup failed", exception)
+                saveMessage = StatusMessage(
+                    text = resources.getString(R.string.backup_save_failed),
+                    isError = true,
+                )
+            } finally {
+                isSaving = false
+            }
+        }
+    }
+
+    fun decryptPending() {
+        val text = pendingEncryptedText ?: return
+        if (importPassphrase.length < 4) {
+            importPassphraseError = resources.getString(R.string.backup_passphrase_invalid)
+            return
+        }
+        isImporting = true
+        importPassphraseError = null
+        scope.launch {
+            val passphrase = importPassphrase.toCharArray()
+            try {
+                val contents = withContext(Dispatchers.Default) {
+                    BackupManager.decryptBackup(text, passphrase)
+                }
+                pendingEncryptedText = null
+                importPassphrase = ""
+                showContents(contents)
+            } catch (_: BackupCrypto.WrongPassphraseException) {
+                importPassphraseError = resources.getString(R.string.backup_passphrase_wrong)
+            } catch (exception: Exception) {
+                Log.e(TAG, "Could not decrypt backup", exception)
+                pendingEncryptedText = null
+                importPassphrase = ""
+                importMessage = StatusMessage(
+                    text = resources.getString(R.string.backup_read_failed),
+                    isError = true,
+                )
+            } finally {
+                passphrase.fill('\u0000')
+                isImporting = false
+            }
+        }
+    }
 
     val importLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
@@ -96,20 +230,18 @@ fun BackupSection(
         importMessage = null
         scope.launch {
             try {
-                val contents = BackupManager.readFromUri(context.applicationContext, uri)
-                if (
-                    contents.appointments.isEmpty() &&
-                    contents.examResults.isEmpty() &&
-                    contents.diaryEntries.isEmpty() &&
-                    contents.medications.isEmpty() &&
-                    contents.medicationDoses.isEmpty()
-                ) {
-                    importMessage = StatusMessage(
-                        text = resources.getString(R.string.backup_empty_file),
-                        isError = true,
+                when (
+                    val result = BackupManager.readFromUri(
+                        context.applicationContext,
+                        uri,
                     )
-                } else {
-                    pendingImport = contents
+                ) {
+                    is BackupReadResult.Plain -> showContents(result.contents)
+                    is BackupReadResult.Encrypted -> {
+                        pendingEncryptedText = result.text
+                        importPassphrase = ""
+                        importPassphraseError = null
+                    }
                 }
             } catch (exception: Exception) {
                 Log.e(TAG, "Could not read backup", exception)
@@ -171,35 +303,9 @@ fun BackupSection(
 
         Button(
             onClick = {
-                isSaving = true
-                saveMessage = null
-                scope.launch {
-                    saveMessage = try {
-                        val file = BackupManager.saveToDownloads(
-                            context = context.applicationContext,
-                            appointments = appointments,
-                            results = results,
-                            entries = entries,
-                            medications = medications,
-                            medicationDoses = medicationDoses,
-                        )
-                        StatusMessage(
-                            text = resources.getString(
-                                R.string.backup_saved,
-                                file.displayName,
-                            ),
-                            isError = false,
-                        )
-                    } catch (exception: Exception) {
-                        Log.e(TAG, "Backup failed", exception)
-                        StatusMessage(
-                            text = resources.getString(R.string.backup_save_failed),
-                            isError = true,
-                        )
-                    } finally {
-                        isSaving = false
-                    }
-                }
+                exportPassphrase = ""
+                exportPassphraseError = null
+                showExportDialog = true
             },
             enabled = !isSaving && !isImporting,
             modifier = Modifier.fillMaxWidth(),
@@ -257,6 +363,251 @@ fun BackupSection(
             text = stringResource(R.string.backup_security_note),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+
+    if (showExportDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                if (!isVerifying && !isSaving) {
+                    showExportDialog = false
+                    exportPassphrase = ""
+                    exportPassphraseError = null
+                }
+            },
+            title = { Text(text = stringResource(R.string.backup_encrypt_title)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        text = if (lockEnabled) {
+                            stringResource(R.string.backup_encrypt_description_pin)
+                        } else {
+                            stringResource(R.string.backup_encrypt_description_passphrase)
+                        },
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    OutlinedTextField(
+                        value = exportPassphrase,
+                        onValueChange = { value ->
+                            exportPassphrase = if (lockEnabled) {
+                                value.filter { it in '0'..'9' }
+                                    .take(8)
+                            } else {
+                                value.take(64)
+                            }
+                            exportPassphraseError = null
+                        },
+                        label = {
+                            Text(
+                                text = if (lockEnabled) {
+                                    stringResource(R.string.security_current_pin)
+                                } else {
+                                    stringResource(R.string.backup_passphrase_label)
+                                },
+                            )
+                        },
+                        singleLine = true,
+                        enabled = !isVerifying && !isSaving,
+                        isError = exportPassphraseError != null,
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = if (lockEnabled) {
+                                KeyboardType.NumberPassword
+                            } else {
+                                KeyboardType.Password
+                            },
+                        ),
+                        visualTransformation = PasswordVisualTransformation(),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    exportPassphraseError?.let { message ->
+                        Text(
+                            text = message,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val passphrase = exportPassphrase
+                        if (passphrase.isEmpty()) {
+                            exportPassphraseError = if (lockEnabled) {
+                                resources.getString(R.string.security_pin_invalid)
+                            } else {
+                                resources.getString(R.string.backup_passphrase_invalid)
+                            }
+                            return@TextButton
+                        }
+                        scope.launch {
+                            isVerifying = true
+                            val valid = if (lockEnabled) {
+                                withContext(Dispatchers.Default) {
+                                    SecurityPreferences.verifyPin(context, passphrase)
+                                }
+                            } else {
+                                passphrase.length >= 4
+                            }
+                            if (!valid) {
+                                exportPassphraseError = if (lockEnabled) {
+                                    resources.getString(R.string.security_pin_wrong)
+                                } else {
+                                    resources.getString(R.string.backup_passphrase_invalid)
+                                }
+                                isVerifying = false
+                                return@launch
+                            }
+                            if (!showExportDialog) {
+                                isVerifying = false
+                                return@launch
+                            }
+                            showExportDialog = false
+                            exportPassphrase = ""
+                            exportPassphraseError = null
+                            isVerifying = false
+                            saveEncrypted(passphrase.toCharArray())
+                        }
+                    },
+                    enabled = !isVerifying && !isSaving,
+                ) {
+                    if (isVerifying) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            strokeWidth = 2.dp,
+                        )
+                    } else {
+                        Text(text = stringResource(R.string.backup_encrypt_action))
+                    }
+                }
+            },
+            dismissButton = {
+                Row {
+                    TextButton(
+                        onClick = {
+                            if (!isVerifying && !isSaving) {
+                                showExportDialog = false
+                                exportPassphrase = ""
+                                exportPassphraseError = null
+                                showPlainWarning = true
+                            }
+                        },
+                        enabled = !isVerifying && !isSaving,
+                    ) {
+                        Text(text = stringResource(R.string.backup_save_plain_action))
+                    }
+                    TextButton(
+                        onClick = {
+                            if (!isVerifying && !isSaving) {
+                                showExportDialog = false
+                                exportPassphrase = ""
+                                exportPassphraseError = null
+                            }
+                        },
+                        enabled = !isVerifying && !isSaving,
+                    ) {
+                        Text(text = stringResource(R.string.action_cancel))
+                    }
+                }
+            },
+        )
+    }
+
+    if (showPlainWarning) {
+        AlertDialog(
+            onDismissRequest = { showPlainWarning = false },
+            title = { Text(text = stringResource(R.string.backup_plain_warning_title)) },
+            text = { Text(text = stringResource(R.string.backup_plain_warning_message)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showPlainWarning = false
+                        savePlain()
+                    },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error,
+                    ),
+                ) {
+                    Text(text = stringResource(R.string.backup_plain_save_action))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showPlainWarning = false }) {
+                    Text(text = stringResource(R.string.action_cancel))
+                }
+            },
+        )
+    }
+
+    val encryptedText = pendingEncryptedText
+    if (encryptedText != null) {
+        AlertDialog(
+            onDismissRequest = {
+                if (!isImporting) {
+                    pendingEncryptedText = null
+                    importPassphrase = ""
+                    importPassphraseError = null
+                }
+            },
+            title = { Text(text = stringResource(R.string.backup_decrypt_title)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        text = stringResource(R.string.backup_decrypt_description),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    OutlinedTextField(
+                        value = importPassphrase,
+                        onValueChange = {
+                            importPassphrase = it.take(64)
+                            importPassphraseError = null
+                        },
+                        label = { Text(text = stringResource(R.string.backup_passphrase_label)) },
+                        singleLine = true,
+                        enabled = !isImporting,
+                        isError = importPassphraseError != null,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                        visualTransformation = PasswordVisualTransformation(),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    importPassphraseError?.let { message ->
+                        Text(
+                            text = message,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = { decryptPending() },
+                    enabled = !isImporting,
+                ) {
+                    if (isImporting) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            strokeWidth = 2.dp,
+                        )
+                    } else {
+                        Text(text = stringResource(R.string.backup_decrypt_action))
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        if (!isImporting) {
+                            pendingEncryptedText = null
+                            importPassphrase = ""
+                            importPassphraseError = null
+                        }
+                    },
+                    enabled = !isImporting,
+                ) {
+                    Text(text = stringResource(R.string.action_cancel))
+                }
+            },
         )
     }
 

@@ -39,6 +39,10 @@ android {
 dependencies {
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.biometric)
+    // BiometricPrompt pulls in fragment 1.2.5, whose FragmentActivity rejects
+    // the request codes used by the Activity Result API.
+    implementation(libs.androidx.fragment)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)

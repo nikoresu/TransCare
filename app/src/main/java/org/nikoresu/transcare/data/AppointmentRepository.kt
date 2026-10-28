@@ -76,7 +76,7 @@ class AppointmentRepository(context: Context) {
             }
             withContext(Dispatchers.IO) {
                 try {
-                    appointmentsFile.writeText(array.toString())
+                    LocalDataCipher.writeText(appointmentsFile, array.toString())
                 } catch (exception: IOException) {
                     Log.e(TAG, "Could not save appointments", exception)
                 }
@@ -84,8 +84,10 @@ class AppointmentRepository(context: Context) {
         }
     }
 
-    private fun loadAppointments(): List<Appointment> =
-        readAppointmentsFile(appointmentsFile)
+    private fun loadAppointments(): List<Appointment> {
+        LocalDataCipher.migrateIfNeeded(appointmentsFile)
+        return readAppointmentsFile(appointmentsFile)
+    }
 
     companion object {
         const val TAG = "AppointmentRepository"
@@ -105,9 +107,9 @@ class AppointmentRepository(context: Context) {
             readAppointmentsFile(File(context.filesDir, APPOINTMENTS_FILE_NAME))
 
         private fun readAppointmentsFile(file: File): List<Appointment> {
-            if (!file.exists()) return emptyList()
             return try {
-                val jsonArray = JSONArray(file.readText())
+                val text = LocalDataCipher.readText(file) ?: return emptyList()
+                val jsonArray = JSONArray(text)
                 buildList {
                     for (index in 0 until jsonArray.length()) {
                         val json = jsonArray.optJSONObject(index) ?: continue

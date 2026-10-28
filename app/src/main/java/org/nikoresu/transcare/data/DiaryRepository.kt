@@ -77,7 +77,7 @@ class DiaryRepository(context: Context) {
             }
             withContext(Dispatchers.IO) {
                 try {
-                    entriesFile.writeText(array.toString())
+                    LocalDataCipher.writeText(entriesFile, array.toString())
                 } catch (exception: IOException) {
                     Log.e(TAG, "Could not save diary entries", exception)
                 }
@@ -86,9 +86,10 @@ class DiaryRepository(context: Context) {
     }
 
     private fun loadEntries(): List<DiaryEntry> {
-        if (!entriesFile.exists()) return emptyList()
+        LocalDataCipher.migrateIfNeeded(entriesFile)
         return try {
-            val jsonArray = JSONArray(entriesFile.readText())
+            val text = LocalDataCipher.readText(entriesFile) ?: return emptyList()
+            val jsonArray = JSONArray(text)
             buildList {
                 for (index in 0 until jsonArray.length()) {
                     val json = jsonArray.optJSONObject(index) ?: continue

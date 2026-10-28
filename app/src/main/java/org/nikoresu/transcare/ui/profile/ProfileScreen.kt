@@ -61,6 +61,7 @@ import org.nikoresu.transcare.domain.model.Profile
 import org.nikoresu.transcare.settings.AppLanguage
 import org.nikoresu.transcare.settings.LocalePreferences
 import org.nikoresu.transcare.ui.backup.BackupSection
+import org.nikoresu.transcare.ui.security.SecuritySection
 
 private data class StatusMessage(
     val text: String,
@@ -85,6 +86,7 @@ fun ProfileScreen(
     ) -> Unit,
     modifier: Modifier = Modifier,
     onLanguageChanged: () -> Unit = {},
+    onLockEnabledChanged: (Boolean) -> Unit = {},
 ) {
     val profile by viewModel.profile.collectAsStateWithLifecycle()
     val isLoaded by viewModel.isLoaded.collectAsStateWithLifecycle()
@@ -420,6 +422,10 @@ fun ProfileScreen(
                     }
                 },
             )
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+
+            SecuritySection(onLockEnabledChanged = onLockEnabledChanged)
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 

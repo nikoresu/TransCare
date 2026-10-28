@@ -57,6 +57,7 @@ fun MainScreen(
     medicationsViewModel: MedicationsViewModel,
     profileViewModel: ProfileViewModel,
     onLanguageChanged: () -> Unit,
+    onLockEnabledChanged: (Boolean) -> Unit,
 ) {
     var selectedTab by rememberSaveable { mutableStateOf(MainTab.SCHEDULE) }
     var editorOpen by remember { mutableStateOf(false) }
@@ -166,6 +167,7 @@ fun MainScreen(
                         )
                     },
                     onLanguageChanged = onLanguageChanged,
+                    onLockEnabledChanged = onLockEnabledChanged,
                     modifier = Modifier.fillMaxSize(),
                 )
             }

@@ -34,6 +34,14 @@ data class BackupContents(
     val skippedEntries: Int,
 )
 
+/** A selected file is either a readable plain backup or an encrypted envelope. */
+sealed interface BackupReadResult {
+    data class Plain(val contents: BackupContents) : BackupReadResult
+
+    /** The envelope needs the original PIN or passphrase before it can be read. */
+    data class Encrypted(val text: String) : BackupReadResult
+}
+
 /**
  * Exports all local data into a single JSON file in the device's Downloads
  * folder using MediaStore, so no storage permission is required.
@@ -45,11 +53,17 @@ object BackupManager {
 
     /** Reject timestamps that cannot be sensible calendar days (up to 2100). */
     private const val MAX_DAY_START_MILLIS = 4_102_444_800_000L
-    private const val MAX_BACKUP_CHARS = 5 * 1024 * 1024
+    private const val MAX_BACKUP_CHARS = 10 * 1024 * 1024
 
-    /** e.g. "TransCare-Data-2026-10-23.json". */
-    fun fileName(date: LocalDate = LocalDate.now()): String =
+    /** e.g. "TransCare-Data-2026-10-23.json" or the encrypted variant. */
+    fun fileName(
+        date: LocalDate = LocalDate.now(),
+        encrypted: Boolean = false,
+    ): String = if (encrypted) {
+        "TransCare-Data-$date.encrypted.json"
+    } else {
         "TransCare-Data-$date.json"
+    }
 
     /** Builds the combined backup document. */
     fun buildBackupJson(
@@ -87,13 +101,46 @@ object BackupManager {
             .toString(2)
     }
 
-    /** Reads and validates a backup chosen through the system file picker. */
-    suspend fun readFromUri(context: Context, uri: Uri): BackupContents =
+    /** Builds an encrypted backup envelope around the normal backup document. */
+    fun buildEncryptedBackupJson(
+        appointments: List<Appointment>,
+        results: List<ExamResult>,
+        diaryEntries: List<DiaryEntry>,
+        medications: List<Medication> = emptyList(),
+        medicationDoses: List<MedicationDose> = emptyList(),
+        passphrase: CharArray,
+        exportedAt: Instant = Instant.now(),
+    ): String {
+        val plaintext = buildBackupJson(
+            appointments = appointments,
+            results = results,
+            diaryEntries = diaryEntries,
+            medications = medications,
+            medicationDoses = medicationDoses,
+            exportedAt = exportedAt,
+        )
+        return BackupCrypto.encrypt(
+            plaintext = plaintext,
+            passphrase = passphrase,
+            exportedAt = exportedAt,
+        )
+    }
+
+    /** Decrypts an envelope and parses the backup inside it. */
+    fun decryptBackup(text: String, passphrase: CharArray): BackupContents =
+        parseBackupJson(BackupCrypto.decrypt(text, passphrase))
+
+    /** Reads a backup chosen through the system file picker. */
+    suspend fun readFromUri(context: Context, uri: Uri): BackupReadResult =
         withContext(Dispatchers.IO) {
             val text = context.contentResolver.openInputStream(uri)?.use { input ->
                 input.readTextLimited()
             } ?: throw IOException("Could not open the selected file")
-            parseBackupJson(text)
+            if (BackupCrypto.isEncryptedBackup(text)) {
+                BackupReadResult.Encrypted(text)
+            } else {
+                BackupReadResult.Plain(parseBackupJson(text))
+            }
         }
 
     /**
@@ -337,16 +384,28 @@ object BackupManager {
         entries: List<DiaryEntry>,
         medications: List<Medication>,
         medicationDoses: List<MedicationDose>,
+        passphrase: CharArray? = null,
     ): BackupFile = withContext(Dispatchers.IO + NonCancellable) {
-        val json = buildBackupJson(
-            appointments = appointments,
-            results = results,
-            diaryEntries = entries,
-            medications = medications,
-            medicationDoses = medicationDoses,
-        )
+        val json = if (passphrase != null) {
+            buildEncryptedBackupJson(
+                appointments = appointments,
+                results = results,
+                diaryEntries = entries,
+                medications = medications,
+                medicationDoses = medicationDoses,
+                passphrase = passphrase,
+            )
+        } else {
+            buildBackupJson(
+                appointments = appointments,
+                results = results,
+                diaryEntries = entries,
+                medications = medications,
+                medicationDoses = medicationDoses,
+            )
+        }
         val resolver = context.contentResolver
-        val requestedName = fileName()
+        val requestedName = fileName(encrypted = passphrase != null)
 
         val values = ContentValues().apply {
             put(MediaStore.Downloads.DISPLAY_NAME, requestedName)

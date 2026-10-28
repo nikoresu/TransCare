@@ -3,7 +3,6 @@ package org.nikoresu.transcare.data
 import android.content.Context
 import android.util.Log
 import java.io.File
-import java.io.FileOutputStream
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -48,11 +47,7 @@ class ProfileRepository(context: Context) {
         return saveMutex.withLock {
             withContext(Dispatchers.IO) {
                 try {
-                    FileOutputStream(profileFile).use { output ->
-                        output.write(ProfileJson.encode(normalized).toByteArray(Charsets.UTF_8))
-                        output.flush()
-                        output.fd.sync()
-                    }
+                    LocalDataCipher.writeText(profileFile, ProfileJson.encode(normalized))
                     _profile.value = normalized
                     true
                 } catch (exception: Exception) {
@@ -64,9 +59,10 @@ class ProfileRepository(context: Context) {
     }
 
     private fun loadProfile(): Profile {
-        if (!profileFile.exists()) return Profile()
+        LocalDataCipher.migrateIfNeeded(profileFile)
         return try {
-            val profile = ProfileJson.decode(profileFile.readText())
+            val text = LocalDataCipher.readText(profileFile) ?: return Profile()
+            val profile = ProfileJson.decode(text)
             if (isPhotoAvailable(profile.photoFileName)) {
                 profile
             } else {

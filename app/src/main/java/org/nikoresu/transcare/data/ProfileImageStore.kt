@@ -6,8 +6,8 @@ import android.graphics.BitmapFactory
 import android.graphics.ImageDecoder
 import android.net.Uri
 import android.util.Log
+import java.io.ByteArrayOutputStream
 import java.io.File
-import java.io.FileOutputStream
 import java.io.IOException
 import java.util.UUID
 import kotlin.math.roundToInt
@@ -61,17 +61,16 @@ object ProfileImageStore {
                 "${UUID.randomUUID().toString().take(8)}.jpg"
             val target = File(targetDirectory, fileName)
             try {
-                val written = FileOutputStream(target).use { output ->
+                val jpeg = ByteArrayOutputStream().use { output ->
                     val compressed = bitmap.compress(
                         Bitmap.CompressFormat.JPEG,
                         JPEG_QUALITY,
                         output,
                     )
-                    output.flush()
-                    output.fd.sync()
-                    compressed
+                    if (!compressed) throw IOException("Could not encode the profile picture")
+                    output.toByteArray()
                 }
-                if (!written) throw IOException("Could not encode the profile picture")
+                LocalDataCipher.writeBytes(target, jpeg)
             } catch (exception: Exception) {
                 target.delete()
                 throw exception
@@ -91,7 +90,9 @@ object ProfileImageStore {
         val file = fileFor(context, fileName) ?: return null
         if (!file.exists()) return null
         return try {
-            BitmapFactory.decodeFile(file.absolutePath)
+            LocalDataCipher.migrateIfNeeded(file)
+            val bytes = LocalDataCipher.readBytes(file) ?: return null
+            BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
         } catch (exception: Exception) {
             Log.e(TAG, "Could not load profile picture", exception)
             null

@@ -81,7 +81,7 @@ class ExamRepository(context: Context) {
             }
             withContext(Dispatchers.IO) {
                 try {
-                    resultsFile.writeText(array.toString())
+                    LocalDataCipher.writeText(resultsFile, array.toString())
                 } catch (exception: IOException) {
                     Log.e(TAG, "Could not save exam results", exception)
                 }
@@ -90,9 +90,10 @@ class ExamRepository(context: Context) {
     }
 
     private fun loadResults(): List<ExamResult> {
-        if (!resultsFile.exists()) return emptyList()
+        LocalDataCipher.migrateIfNeeded(resultsFile)
         return try {
-            val jsonArray = JSONArray(resultsFile.readText())
+            val text = LocalDataCipher.readText(resultsFile) ?: return emptyList()
+            val jsonArray = JSONArray(text)
             buildList {
                 for (index in 0 until jsonArray.length()) {
                     val json = jsonArray.optJSONObject(index) ?: continue

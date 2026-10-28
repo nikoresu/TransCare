@@ -48,6 +48,8 @@ class MedicationRepository(context: Context) {
     init {
         scope.launch {
             mutex.withLock {
+                LocalDataCipher.migrateIfNeeded(medicationsFile)
+                LocalDataCipher.migrateIfNeeded(dosesFile)
                 _medications.value = readMedicationsFile(medicationsFile)
                 _doses.value = readDosesFile(dosesFile)
                 _isLoaded.value = true
@@ -301,9 +303,9 @@ class MedicationRepository(context: Context) {
         }
 
         private fun readMedicationsFile(file: File): List<Medication> {
-            if (!file.exists()) return emptyList()
             return try {
-                val jsonArray = JSONArray(file.readText())
+                val text = LocalDataCipher.readText(file) ?: return emptyList()
+                val jsonArray = JSONArray(text)
                 buildList {
                     for (index in 0 until jsonArray.length()) {
                         val json = jsonArray.optJSONObject(index) ?: continue
@@ -317,9 +319,9 @@ class MedicationRepository(context: Context) {
         }
 
         private fun readDosesFile(file: File): List<MedicationDose> {
-            if (!file.exists()) return emptyList()
             return try {
-                val jsonArray = JSONArray(file.readText())
+                val text = LocalDataCipher.readText(file) ?: return emptyList()
+                val jsonArray = JSONArray(text)
                 buildList {
                     for (index in 0 until jsonArray.length()) {
                         val json = jsonArray.optJSONObject(index) ?: continue
@@ -335,13 +337,13 @@ class MedicationRepository(context: Context) {
         private fun writeMedicationsFile(file: File, medications: List<Medication>) {
             val array = JSONArray()
             medications.forEach { array.put(it.toJsonObject()) }
-            file.writeText(array.toString())
+            LocalDataCipher.writeText(file, array.toString())
         }
 
         private fun writeDosesFile(file: File, doses: List<MedicationDose>) {
             val array = JSONArray()
             doses.forEach { array.put(it.toJsonObject()) }
-            file.writeText(array.toString())
+            LocalDataCipher.writeText(file, array.toString())
         }
 
         private const val MAX_DOSE_INDEX = 3
