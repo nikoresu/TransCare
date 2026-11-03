@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <string name="app_name">transcare</string>
+    <string name="app_name">TransCare</string>
 
     <!-- Navigation -->
     <string name="tab_schedule">Schedule</string>
