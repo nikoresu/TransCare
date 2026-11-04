@@ -1,0 +1,14 @@
+# R8 repackages classes into the unnamed package to compact the DEX (AGP 9.1+).
+#
+# Kotlin's multifile part classes (CollectionsKt__IterablesKt,
+# CollectionsKt__MutableCollectionsJVMKt, ...) are package-private and inherit
+# from each other. Repackaging only the subclass while its superclass stays in
+# kotlin.collections makes the superclass inaccessible and the app crashes
+# before the first frame:
+#
+#   IllegalAccessError: Class kotlin.collections.j extended by class tp is
+#   inaccessible
+#
+# Keeping the parts in their original packages prevents the split. Shrinking
+# and optimization stay enabled, so this costs practically nothing.
+-keep,allowshrinking,allowoptimization class kotlin.**Kt__*
